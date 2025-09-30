@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import compression from 'compression';
 import performanceMonitor from './utils/performance.js';
+import healthService from './services/health.service.js';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
@@ -12,10 +13,13 @@ import { dirname, join } from 'path';
 import aiRoutes from './routes/ai.routes.js';
 import hotelRoutes from './routes/hotel.routes.js';
 import searchRoutes from './routes/search.routes.js';
+import sanityRoutes from './routes/sanity.routes.js';
 
 // Import services and data
 import ragService from './services/rag-ultra-optimized.service.js';
 import sampleHotels from './data/sample-hotels.js';
+import sanityService from './services/sanity.service.js';
+import statusTracker from './services/sanity.index.status.js';
 
 // Load environment variables
 dotenv.config();
@@ -62,18 +66,31 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(compression());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Capture raw body for webhook HMAC verification
+app.use(express.json({
+  verify: (req, res, buf) => {
+    try { req.rawBody = buf; } catch (e) {}
+  }
+}));
+app.use(express.urlencoded({ extended: true, verify: (req, res, buf) => { try { req.rawBody = buf; } catch(e){} } }));
 app.use(morgan('dev'));
 
 // Routes
 app.use('/api/ai', aiRoutes);
 app.use('/api/hotels', hotelRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/sanity', sanityRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  (async () => {
+    try {
+      const services = await healthService.getHealth();
+      res.json({ status: 'OK', timestamp: new Date().toISOString(), services });
+    } catch (e) {
+      res.status(500).json({ status: 'ERROR', error: e.message });
+    }
+  })();
 });
 
 // Error handling middleware
@@ -94,8 +111,29 @@ app.use((req, res) => {
 async function initializeData() {
   try {
     console.log('🏨 Initializing hotel data...');
-    await ragService.storeHotelData(sampleHotels);
-    console.log('✅ Hotel data initialized successfully');
+
+    let hotelsToStore = sampleHotels;
+
+    // If Sanity is configured, try to load hotels from the CMS. This allows using Sanity as the source of truth.
+    if (process.env.SANITY_PROJECT_ID) {
+      try {
+        console.log('Fetching hotels from Sanity...');
+        const sanityHotels = await sanityService.getAllHotels();
+        if (Array.isArray(sanityHotels) && sanityHotels.length > 0) {
+          hotelsToStore = sanityHotels;
+          console.log(`Loaded ${sanityHotels.length} hotels from Sanity`);
+        } else {
+          console.log('No hotels found in Sanity; falling back to local sample data');
+        }
+      } catch (e) {
+        console.warn('Failed to fetch hotels from Sanity, falling back to sample data:', e && e.message ? e.message : e);
+      }
+    }
+
+  await ragService.storeHotelData(hotelsToStore);
+  // update status tracker
+  try { statusTracker.setStatus(Array.isArray(hotelsToStore) ? hotelsToStore.length : 0); } catch(e) {}
+  console.log('✅ Hotel data initialized successfully');
   } catch (error) {
     console.error('❌ Error initializing hotel data:', error);
     // Don't crash the server, just log the error
