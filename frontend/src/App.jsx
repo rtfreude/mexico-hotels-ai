@@ -8,6 +8,7 @@ import ResortSearchPage from './pages/ResortSearchPage';
 import AIAssistantPage from './pages/AIAssistantPage';
 import HotelAIAssistantPage from './pages/HotelAIAssistantPage';
 import ResortAIAssistantPage from './pages/ResortAIAssistantPage';
+import SanityAdminPage from './pages/SanityAdminPage';
 
 // Scroll restoration component
 function ScrollToTop() {
@@ -40,6 +41,8 @@ function App() {
           {/* New resort-specific routes */}
           <Route path="/resorts/search" element={<ResortSearchPage />} />
           <Route path="/resorts/ai-assistant" element={<ResortAIAssistantPage />} />
+          {/* Admin */}
+          <Route path="/admin" element={<SanityAdminPage />} />
         </Routes>
       </div>
     </Router>
