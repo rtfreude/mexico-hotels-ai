@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:5003/api/ai/chat';
+const API_URL = 'http://localhost:5001/api/ai/chat';
 
 // Test queries
 const testQueries = [

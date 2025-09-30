@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Bot } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface';
 import HotelGrid from '../components/HotelGrid';
@@ -13,6 +13,43 @@ function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
   const [sessionData, setSessionData] = useState(null);
+  const location = useLocation();
+
+  // Handle parameters from wizard
+  useEffect(() => {
+    const urlParams = new URLSearchParams(location.search);
+    const city = urlParams.get('city');
+    const region = urlParams.get('region');
+    const checkin = urlParams.get('checkin');
+    const checkout = urlParams.get('checkout');
+    const guests = urlParams.get('guests');
+    const budget = urlParams.get('budget');
+
+    if (city) {
+      // Convert city ID to display name
+      const cityDisplayName = city.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      
+      // Construct a natural language query from the wizard parameters
+      let query = `Show me hotels in ${cityDisplayName}`;
+      
+      if (budget && budget !== 'mid-range') {
+        query += ` with ${budget} pricing`;
+      }
+      
+      if (checkin && checkout) {
+        query += ` from ${checkin} to ${checkout}`;
+      }
+      
+      if (guests && guests !== '2') {
+        query += ` for ${guests} guests`;
+      }
+
+      // Auto-trigger the search
+      console.log('Auto-searching from wizard:', query);
+      // You would trigger your chat interface here with the query
+      setAiResponse(`Welcome! I'm searching for ${budget || 'mid-range'} hotels in ${cityDisplayName} based on your region selection.`);
+    }
+  }, [location.search]);
 
 
   return (
@@ -44,7 +81,7 @@ function SearchPage() {
             Discover Your Perfect Mexico Getaway — AI Assisted
           </h1>
           <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto">
-            Ask Pepe for personalized hotel recommendations, view results on the map, and explore curated options — all in one place. Pepe AI helps narrow choices and surface the best matches.
+            Ask Maya for personalized hotel recommendations, view results on the map, and explore curated options — all in one place. Maya AI helps narrow choices and surface the best matches.
           </p>
         </div>
 
@@ -68,7 +105,7 @@ function SearchPage() {
                     <Bot className="w-5 h-5" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Chat with Pepe (AI)</h3>
+                    <h3 className="text-lg font-semibold text-gray-800">Chat with Maya (AI)</h3>
                     <p className="text-sm text-gray-500">Get personalized recommendations and quick comparisons.</p>
                   </div>
                 </div>
@@ -91,13 +128,13 @@ function SearchPage() {
             {/* Pro Tips panel - spans 1/3 on large screens */}
             <div className="lg:col-span-1">
               <div className="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-2xl shadow-xl p-6 h-full flex flex-col">
-                <h3 className="text-lg font-bold mb-3">💡 Pro Tips from Pepe</h3>
+                <h3 className="text-lg font-bold mb-3">💡 Pro Tips from Maya</h3>
                 <ul className="space-y-2 text-sm text-gray-700 flex-1">
                   <li>• Ask about specific amenities like "adults-only" or "swim-up bars"</li>
-                  <li>• Tell Pepe your budget - she'll find the best value for your peso!</li>
+                  <li>• Tell Maya your budget - she'll find the best value for your peso!</li>
                   <li>• Ask about weather, culture, or local food recommendations</li>
-                  <li>• Ask Pepe to compare resorts and explain what makes each special</li>
-                  <li>• Don't be shy - Pepe loves chatting about Mexico!</li>
+                  <li>• Ask Maya to compare resorts and explain what makes each special</li>
+                  <li>• Don't be shy - Maya loves chatting about Mexico!</li>
                 </ul>
                 <div className="text-xs text-gray-500 mt-4">Tip: On mobile the tips appear below the chat for easier reading.</div>
               </div>
@@ -112,9 +149,13 @@ function SearchPage() {
             <div className="bg-white rounded-2xl shadow-xl p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-4">Map</h2>
               {/* Prefer sessionData.hotels when available, otherwise use hotels state */}
-              <GoogleMap hotels={sessionData?.hotels?.length ? sessionData.hotels : hotels} />
+              <GoogleMap 
+                hotels={sessionData?.hotels || hotels || []} 
+                restaurants={sessionData?.restaurants || []}
+                activities={sessionData?.activities || []}
+              />
               <p className="text-sm text-gray-500 mt-3">
-                Markers show hotel locations. Click a marker to open details and center the map.
+                Map shows hotels (🏨), restaurants (🍽️), and activities (🎯). Click any marker for details.
               </p>
             </div>
 

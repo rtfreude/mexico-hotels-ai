@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-function GoogleMap({ hotels = [] }) {
+function GoogleMap({ hotels = [], restaurants = [], activities = [] }) {
   const containerRef = useRef(null);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
@@ -80,33 +80,104 @@ function GoogleMap({ hotels = [] }) {
     });
     markersRef.current = [];
 
-    if (!hotels || hotels.length === 0) {
-      // No hotels: keep default view
+    // Check if we have any data to display
+    const totalItems = hotels.length + restaurants.length + activities.length;
+    if (totalItems === 0) {
+      // No data: keep default view
       return;
     }
 
-    // Create markers for each hotel using geocoding (name + city + state)
-    hotels.forEach((h) => {
-      const addressParts = [h.name, h.location || '', h.city || '', h.state || ''].filter(Boolean);
+    // Helper function to create custom icon based on type
+    const createCustomIcon = (type) => {
+      const iconColor = {
+        hotel: '#3B82F6', // blue
+        restaurant: '#F97316', // orange  
+        activity: '#10B981' // green
+      }[type] || '#6B7280'; // gray fallback
+
+      const iconSymbol = {
+        hotel: '🏨',
+        restaurant: '🍽️', 
+        activity: '🎯'
+      }[type] || '📍';
+
+      return {
+        url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+          <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="18" fill="${iconColor}" stroke="white" stroke-width="3"/>
+            <text x="20" y="26" text-anchor="middle" font-size="14" fill="white">${iconSymbol}</text>
+          </svg>
+        `)}`,
+        scaledSize: new google.maps.Size(40, 40),
+        anchor: new google.maps.Point(20, 20)
+      };
+    };
+
+    // Helper function to create markers
+    const createMarker = (item, type) => {
+      const addressParts = [
+        item.name, 
+        item.location || '', 
+        item.city || '', 
+        item.state || ''
+      ].filter(Boolean);
       const address = addressParts.join(', ');
+      
       geocoder.geocode({ address }, (results, status) => {
         if (status === 'OK' && results && results[0]) {
           const loc = results[0].geometry.location;
           const marker = new google.maps.Marker({
             position: loc,
             map,
-            title: h.name
+            title: item.name,
+            icon: createCustomIcon(type)
           });
 
           const content = document.createElement('div');
           content.style.maxWidth = '280px';
-          content.innerHTML = `
-            <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111;">
-              <h3 style="margin:0 0 6px 0; font-size:16px;">${h.name}</h3>
-              <p style="margin:0 0 6px 0; color:#555;">${h.location || h.city || ''}</p>
-              <p style="margin:0; color:#333;">Rating: <strong>${h.rating ?? '—'}</strong></p>
-            </div>
-          `;
+          
+          let contentHTML = '';
+          if (type === 'hotel') {
+            contentHTML = `
+              <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 18px;">🏨</span>
+                  <h3 style="margin:0; font-size:16px; font-weight: 600;">${item.name}</h3>
+                </div>
+                <p style="margin:0 0 6px 0; color:#555; font-size: 14px;">${item.location || item.city || ''}</p>
+                <p style="margin:0; color:#333; font-size: 14px;">Rating: <strong>${item.rating ?? '—'}</strong></p>
+                <p style="margin:4px 0 0 0; color:#666; font-size: 12px;">Price: ${item.priceRange || 'Contact for rates'}</p>
+              </div>
+            `;
+          } else if (type === 'restaurant') {
+            contentHTML = `
+              <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 18px;">🍽️</span>
+                  <h3 style="margin:0; font-size:16px; font-weight: 600;">${item.name}</h3>
+                </div>
+                <p style="margin:0 0 6px 0; color:#555; font-size: 14px;">${item.location || ''}</p>
+                <p style="margin:0 0 4px 0; color:#333; font-size: 14px;">Cuisine: <strong>${item.cuisine || 'Various'}</strong></p>
+                <p style="margin:0; color:#333; font-size: 14px;">Rating: <strong>${item.rating ?? '—'}</strong></p>
+                <p style="margin:4px 0 0 0; color:#666; font-size: 12px;">Price: ${item.priceRange || 'Varies'}</p>
+              </div>
+            `;
+          } else if (type === 'activity') {
+            contentHTML = `
+              <div style="font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; color:#111;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                  <span style="font-size: 18px;">🎯</span>
+                  <h3 style="margin:0; font-size:16px; font-weight: 600;">${item.name}</h3>
+                </div>
+                <p style="margin:0 0 6px 0; color:#555; font-size: 14px;">${item.location || ''}</p>
+                <p style="margin:0 0 4px 0; color:#333; font-size: 14px;">Type: <strong>${item.type || 'Activity'}</strong></p>
+                <p style="margin:0; color:#333; font-size: 14px;">Rating: <strong>${item.rating ?? '—'}</strong></p>
+                ${item.duration ? `<p style="margin:4px 0 0 0; color:#666; font-size: 12px;">Duration: ${item.duration}</p>` : ''}
+              </div>
+            `;
+          }
+          
+          content.innerHTML = contentHTML;
           const infowindow = new google.maps.InfoWindow({ content });
 
           marker.addListener('click', () => {
@@ -121,6 +192,21 @@ function GoogleMap({ hotels = [] }) {
           // console.warn('Geocode failed for', address, status);
         }
       });
+    };
+
+    // Create markers for hotels
+    hotels.forEach((hotel) => {
+      createMarker(hotel, 'hotel');
+    });
+
+    // Create markers for restaurants  
+    restaurants.forEach((restaurant) => {
+      createMarker(restaurant, 'restaurant');
+    });
+
+    // Create markers for activities
+    activities.forEach((activity) => {
+      createMarker(activity, 'activity');
     });
 
     // Optionally fit bounds to markers after a short delay (allow geocoding responses)
@@ -131,7 +217,7 @@ function GoogleMap({ hotels = [] }) {
         map.fitBounds(bounds, 80);
       }
     }, 1200);
-  }, [loaded, hotels]);
+  }, [loaded, hotels, restaurants, activities]);
 
   return (
     <div className="relative">
@@ -148,7 +234,7 @@ function GoogleMap({ hotels = [] }) {
       )}
       {/* Floating hint */}
       <div className="absolute left-4 bottom-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm text-gray-700 shadow">
-        Click markers for hotel details
+        🏨 Hotels • 🍽️ Restaurants • 🎯 Activities
       </div>
     </div>
   );

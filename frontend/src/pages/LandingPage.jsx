@@ -1,32 +1,35 @@
 import { useState, useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import ResortLocationSelector from '../components/ResortLocationSelector';
 import { 
   MapPin, 
-  Phone, 
-  Mail, 
-  MessageCircle, 
   Search, 
   Star, 
   Users, 
-  Calendar,
   Sparkles,
   ChevronRight,
-  Globe,
   Shield,
-  Heart,
   Sun,
   Waves,
-  Palmtree,
-  Camera,
-  Plane
+  Zap,
+  Award,
+  DollarSign,
+  Target,
+  Phone,
+  Mail,
+  Palmtree
 } from 'lucide-react';
 
 // Animation variants
 const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
+  hidden: { opacity: 0, y: 30 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.8, ease: "easeOut" }
+  }
 };
 
 const staggerContainer = {
@@ -34,7 +37,8 @@ const staggerContainer = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.1
+      staggerChildren: 0.2,
+      delayChildren: 0.3
     }
   }
 };
@@ -59,7 +63,6 @@ const AnimatedSection = ({ children, className = "" }) => {
       animate={controls}
       initial="hidden"
       variants={fadeInUp}
-      transition={{ duration: 0.6 }}
       className={className}
     >
       {children}
@@ -69,6 +72,14 @@ const AnimatedSection = ({ children, className = "" }) => {
 
 const LandingPage = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLocationSelectorOpen, setIsLocationSelectorOpen] = useState(false);
+  const [selectedResortCategory, setSelectedResortCategory] = useState(null);
+  const [selectedRegion, setSelectedRegion] = useState(null);
+  const [isDestinationMapOpen, setIsDestinationMapOpen] = useState(false);
+  const [destinationModalStep, setDestinationModalStep] = useState(1); // 1 = locations, 2 = resort type
+  const [selectedResortType, setSelectedResortType] = useState(null);
+  const [isNavigating, setIsNavigating] = useState(false); // Add navigation loading state
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -78,232 +89,208 @@ const LandingPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  const handleOpenLocationSelector = (categoryType) => {
+    setSelectedResortCategory(categoryType);
+    setIsLocationSelectorOpen(true);
+  };
+
+  const handleCloseLocationSelector = () => {
+    setIsLocationSelectorOpen(false);
+    setSelectedResortCategory(null);
+  };
+
+  const handleRegionSelect = (region) => {
+    setSelectedRegion(region);
+    setIsNavigating(true); // Show loading immediately
+    
+    // Navigate to search page with both region and resort type using React Router
+    const searchParams = new URLSearchParams({
+      destination: region.id,
+    });
+    
+    if (region.type) {
+      searchParams.append('type', region.type);
+    }
+    
+    navigate(`/resorts/search?${searchParams.toString()}`);
+  };
+
   const destinations = [
     {
-      name: "Cancún",
-      image: "https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=800&q=80",
-      description: "Crystal clear waters and white sand beaches"
+      name: "Riviera Maya",
+      image: "https://images.unsplash.com/photo-1570792328831-0c9ce06bf824?w=800&q=80",
+      description: "Exclusive beachfront luxury with ancient Mayan heritage",
+      type: "Ultra-Luxury All-Inclusive"
     },
     {
-      name: "Playa del Carmen",
-      image: "https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=800&q=80",
-      description: "Vibrant nightlife and stunning cenotes"
-    },
-    {
-      name: "Tulum",
-      image: "https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=800&q=80",
-      description: "Ancient ruins meet bohemian beach vibes"
-    },
-    {
-      name: "Cabo San Lucas",
-      image: "https://images.unsplash.com/photo-1518638150340-f706e86654de?w=800&q=80",
-      description: "Luxury resorts and dramatic landscapes"
+      name: "Los Cabos",
+      image: "https://images.unsplash.com/photo-1544966503-7cc5ac882d5e?w=800&q=80",
+      description: "Desert meets ocean in sophisticated elegance",
+      type: "Premium Adults-Only"
     },
     {
       name: "Puerto Vallarta",
       image: "https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=800&q=80",
-      description: "Charming old town and golden beaches"
+      description: "Refined coastal charm with authentic Mexican culture",
+      type: "Boutique Luxury"
     },
     {
-      name: "Cozumel",
-      image: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=800&q=80",
-      description: "World-class diving and snorkeling paradise"
-    }
-  ];
-
-  const excursions = [
-    {
-      title: "Cenote Diving",
-      image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
-      price: "From $89",
-      duration: "4 hours"
-    },
-    {
-      title: "Mayan Ruins Tour",
-      image: "https://images.unsplash.com/photo-1518638150340-f706e86654de?w=800&q=80",
-      price: "From $120",
-      duration: "Full day"
-    },
-    {
-      title: "Sunset Catamaran",
-      image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80",
-      price: "From $75",
-      duration: "3 hours"
-    },
-    {
-      title: "Zip-line Adventure",
-      image: "https://images.unsplash.com/photo-1540979388789-6cee28a1cdc9?w=800&q=80",
-      price: "From $95",
-      duration: "Half day"
-    }
-  ];
-
-  const testimonials = [
-    {
-      name: "Sarah Johnson",
-      location: "Austin, TX",
-      text: "The personal touch from the travel agent made all the difference! Our honeymoon in Riviera Maya was absolutely perfect.",
-      rating: 5,
-      avatar: "https://i.pravatar.cc/150?img=1"
-    },
-    {
-      name: "Michael Chen",
-      location: "San Francisco, CA",
-      text: "The AI assistant helped me find hidden gems I never would have discovered. Best family vacation ever!",
-      rating: 5,
-      avatar: "https://i.pravatar.cc/150?img=3"
-    },
-    {
-      name: "Emily Rodriguez",
-      location: "Miami, FL",
-      text: "From booking to checkout, everything was seamless. The hotel recommendations were spot on!",
-      rating: 5,
-      avatar: "https://i.pravatar.cc/150?img=5"
+      name: "Tulum",
+      image: "https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=800&q=80",
+      description: "Bohemian luxury meets archaeological wonder",
+      type: "Eco-Luxury Resort"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Fixed Navigation */}
-      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${
-        isScrolled ? 'bg-white shadow-lg' : 'bg-transparent'
+    <div className="min-h-screen bg-black text-white">
+      {/* Elegant Navigation */}
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-500 ${
+        isScrolled ? 'bg-black/95 backdrop-blur-sm border-b border-gold-500/20' : 'bg-transparent'
       }`}>
-        <div className="container mx-auto px-4 py-4">
+        <div className="container mx-auto px-6 py-6">
           <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-2">
-              <Sun className="w-8 h-8 text-yellow-500" />
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-teal-500 bg-clip-text text-transparent">
-                Mexico Travel Pro
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center">
+                <Sun className="w-6 h-6 text-black" />
+              </div>
+              <span className="text-2xl font-light tracking-wide text-white">
+                Resorts of Mexico
               </span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#destinations" className="hover:text-blue-600 transition">Destinations</a>
-              <a href="#excursions" className="hover:text-blue-600 transition">Excursions</a>
-              <a href="#services" className="hover:text-blue-600 transition">Services</a>
-              <a href="#contact" className="hover:text-blue-600 transition">Contact</a>
-              <Link to="/ai-assistant" className="bg-gradient-to-r from-blue-600 to-teal-500 text-white px-6 py-2 rounded-full hover:shadow-lg transition">
-                Try AI Assistant
+              <a href="#destinations" className="text-gray-300 hover:text-white transition-colors duration-300 font-light">Destinations</a>
+              <a href="#categories" className="text-gray-300 hover:text-white transition-colors duration-300 font-light">Resort Types</a>
+              <a href="#testimonials" className="text-gray-300 hover:text-white transition-colors duration-300 font-light">Reviews</a>
+              <Link 
+                to="/resorts/ai-assistant" 
+                className="bg-gradient-to-r from-amber-400 to-yellow-600 text-black px-6 py-3 rounded-sm hover:shadow-lg transition-all duration-300 font-medium tracking-wide"
+              >
+                Find Your Resort
               </Link>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section with Video Background Effect */}
+      {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img 
-            src="https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=1920&q=80" 
-            alt="Mexico Beach"
+            src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=1920&q=80" 
+            alt="Mexico Resort"
             className="w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/40"></div>
+          <div className="absolute inset-0 bg-black/60"></div>
         </div>
         
         <motion.div 
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1 }}
-          className="relative z-10 text-center text-white px-4 max-w-5xl mx-auto"
+          transition={{ duration: 1.2, ease: "easeOut" }}
+          className="relative z-10 text-center text-white px-6 max-w-5xl mx-auto"
         >
           <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2, duration: 0.8 }}
-            className="text-5xl md:text-7xl font-bold mb-6"
+            transition={{ delay: 0.5, duration: 1 }}
+            className="text-4xl md:text-7xl font-thin mb-8 leading-tight tracking-wide"
           >
-            Your Dream Mexico Vacation
-            <span className="block text-3xl md:text-5xl mt-4 text-yellow-300">
-              Starts Here
+            Mexico's Most
+            <span className="block font-light bg-gradient-to-r from-amber-400 to-yellow-600 bg-clip-text text-transparent">
+              Extraordinary Resorts
             </span>
           </motion.h1>
           
           <motion.p 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.4, duration: 0.8 }}
-            className="text-xl md:text-2xl mb-8 text-gray-100"
+            transition={{ delay: 0.7, duration: 0.8 }}
+            className="text-xl md:text-2xl mb-12 text-gray-300 font-light max-w-3xl mx-auto leading-relaxed"
           >
-            Expert travel planning meets cutting-edge AI technology
+            From luxury escapes to family adventures, discover the perfect resort experience 
+            tailored to your unique travel dreams.
           </motion.p>
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.6, duration: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
+            transition={{ delay: 0.9, duration: 0.8 }}
+            className="flex flex-col sm:flex-row gap-6 justify-center"
           >
-            <Link to="/search" className="bg-white text-blue-600 px-8 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition flex items-center justify-center">
-              <Search className="w-5 h-5 mr-2" />
-              Search Hotels
+            <Link 
+              to="/resorts/ai-assistant"
+              className="group bg-gradient-to-r from-amber-400 to-yellow-600 text-black px-8 py-4 rounded-sm text-lg font-medium hover:shadow-xl transition-all duration-300 flex items-center justify-center"
+            >
+              <Sparkles className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform" />
+              Get AI Travel Recommendations
             </Link>
-            <a href="#contact" className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-8 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition flex items-center justify-center">
-              <Phone className="w-5 h-5 mr-2" />
-              Talk to an Expert
-            </a>
+            <button 
+              onClick={() => setIsDestinationMapOpen(true)}
+              className="border border-white/30 text-white px-8 py-4 rounded-sm text-lg font-light hover:bg-white/10 transition-all duration-300 flex items-center justify-center backdrop-blur-sm"
+            >
+              <MapPin className="w-5 h-5 mr-3" />
+              Browse Resorts Yourself
+            </button>
           </motion.div>
 
+          {/* Elegant Stats */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.8, duration: 0.8 }}
-            className="mt-12 flex justify-center space-x-8 text-sm"
+            transition={{ delay: 1.1, duration: 0.8 }}
+            className="flex flex-wrap justify-center items-center gap-12 mt-16 text-sm font-light tracking-wide"
           >
-            <div className="flex items-center">
-              <Shield className="w-5 h-5 mr-2 text-green-400" />
-              <span>100% Secure Booking</span>
+            <div className="text-center">
+              <div className="text-2xl font-thin text-amber-400 mb-1">200+</div>
+              <div className="text-gray-400">Premier Resorts</div>
             </div>
-            <div className="flex items-center">
-              <Star className="w-5 h-5 mr-2 text-yellow-400" />
-              <span>Best Price Guarantee</span>
+            <div className="text-center">
+              <div className="text-2xl font-thin text-amber-400 mb-1">98%</div>
+              <div className="text-gray-400">Guest Satisfaction</div>
             </div>
-            <div className="flex items-center">
-              <Users className="w-5 h-5 mr-2 text-blue-400" />
-              <span>24/7 Support</span>
+            <div className="text-center">
+              <div className="text-2xl font-thin text-amber-400 mb-1">24/7</div>
+              <div className="text-gray-400">Support Service</div>
             </div>
           </motion.div>
         </motion.div>
 
-        {/* Animated scroll indicator */}
-        <motion.div 
-          animate={{ y: [0, 10, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
+        {/* Scroll Indicator */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.5 }}
           className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
         >
-          <ChevronRight className="w-8 h-8 text-white rotate-90" />
+          <div className="w-6 h-10 border-2 border-white/30 rounded-full flex justify-center">
+            <motion.div
+              animate={{ y: [0, 12, 0] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+              className="w-1 h-3 bg-white/50 rounded-full mt-2"
+            />
+          </div>
         </motion.div>
       </section>
 
-      {/* Quick Search Bar */}
-      <AnimatedSection className="py-12 bg-gradient-to-r from-blue-50 to-teal-50">
-        <div className="container mx-auto px-4">
-          <div className="bg-white rounded-2xl shadow-xl p-8">
-            <h2 className="text-3xl font-bold text-center mb-6">Quick Hotel Search</h2>
-            <div className="flex flex-col md:flex-row gap-4 max-w-4xl mx-auto">
-              <input 
-                type="text" 
-                placeholder="Where in Mexico?" 
-                className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:outline-none"
-              />
-              <input 
-                type="date" 
-                className="px-6 py-3 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:outline-none"
-              />
-              <Link to="/search" className="bg-gradient-to-r from-blue-600 to-teal-500 text-white px-8 py-3 rounded-full hover:shadow-lg transition flex items-center justify-center">
-                <Search className="w-5 h-5 mr-2" />
-                Search
-              </Link>
-            </div>
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Popular Destinations */}
-      <AnimatedSection id="destinations" className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Popular Destinations</h2>
-            <p className="text-xl text-gray-600">Discover Mexico's most breathtaking locations</p>
+      {/* Premium Destinations */}
+      <AnimatedSection id="destinations" className="py-24 bg-black">
+        <div className="container mx-auto px-6">
+          <div className="text-center mb-20">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8 }}
+              className="inline-block border border-amber-400/30 px-6 py-2 rounded-sm bg-gray-900/50 backdrop-blur-sm mb-8"
+            >
+              <span className="text-amber-400 text-sm font-light tracking-widest">PREMIER DESTINATIONS</span>
+            </motion.div>
+            <h2 className="text-4xl md:text-6xl font-thin mb-8 text-white">
+              Mexico's Finest Locations
+            </h2>
+            <p className="text-xl text-gray-400 font-light max-w-2xl mx-auto">
+              Discover extraordinary destinations where luxury meets authentic Mexican culture
+            </p>
           </div>
           
           <motion.div 
@@ -311,27 +298,36 @@ const LandingPage = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+            className="grid grid-cols-1 md:grid-cols-2 gap-8"
           >
             {destinations.map((dest, index) => (
               <motion.div
                 key={index}
                 variants={fadeInUp}
                 whileHover={{ y: -10 }}
+                transition={{ duration: 0.3 }}
                 className="group cursor-pointer"
               >
-                <div className="relative overflow-hidden rounded-2xl shadow-lg">
+                <div className="relative overflow-hidden rounded-lg bg-gray-900">
                   <img 
                     src={dest.image} 
                     alt={dest.name}
-                    className="w-full h-64 object-cover group-hover:scale-110 transition duration-500"
+                    className="w-full h-96 object-cover group-hover:scale-105 transition duration-700"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
-                  <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                    <h3 className="text-2xl font-bold mb-2">{dest.name}</h3>
-                    <p className="text-sm opacity-90">{dest.description}</p>
-                    <Link to="/search" className="inline-flex items-center mt-3 text-yellow-300 hover:text-yellow-400 transition">
-                      Explore <ChevronRight className="w-4 h-4 ml-1" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                  <div className="absolute top-6 left-6">
+                    <span className="bg-amber-400 text-black px-4 py-1 rounded-sm text-sm font-medium">
+                      {dest.type}
+                    </span>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 p-8">
+                    <h3 className="text-2xl font-light mb-3 text-white">{dest.name}</h3>
+                    <p className="text-gray-300 mb-4 font-light">{dest.description}</p>
+                    <Link 
+                      to={`/resorts/search?destination=${dest.name.toLowerCase().replace(' ', '-')}`} 
+                      className="inline-flex items-center text-amber-400 hover:text-white transition-colors duration-300 font-light"
+                    >
+                      Explore Resorts <ChevronRight className="w-4 h-4 ml-2" />
                     </Link>
                   </div>
                 </div>
@@ -341,378 +337,571 @@ const LandingPage = () => {
         </div>
       </AnimatedSection>
 
-      {/* Excursions Section */}
-      <AnimatedSection id="excursions" className="py-20 bg-gradient-to-br from-orange-50 to-yellow-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Unforgettable Excursions</h2>
-            <p className="text-xl text-gray-600">Add adventure to your Mexico vacation</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {excursions.map((excursion, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -5 }}
-                className="bg-white rounded-xl shadow-lg overflow-hidden"
-              >
-                <img 
-                  src={excursion.image} 
-                  alt={excursion.title}
-                  className="w-full h-48 object-cover"
-                />
-                <div className="p-6">
-                  <h3 className="text-xl font-bold mb-2">{excursion.title}</h3>
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-2xl font-bold text-blue-600">{excursion.price}</span>
-                    <span className="text-sm text-gray-500">{excursion.duration}</span>
-                  </div>
-                  <button className="w-full bg-gradient-to-r from-blue-600 to-teal-500 text-white py-2 rounded-lg hover:shadow-lg transition">
-                    Book Now
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Services Section */}
-      <AnimatedSection id="services" className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Choose Your Perfect Planning Experience</h2>
-            <p className="text-xl text-gray-600">Personal touch or AI-powered convenience</p>
-          </div>
-          
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {/* Personal Travel Agent Service */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl p-8 shadow-xl"
-            >
-              <div className="flex items-center mb-6">
-                <Heart className="w-12 h-12 text-purple-600 mr-4" />
-                <h3 className="text-3xl font-bold">Personal Travel Agent</h3>
-              </div>
-              <p className="text-gray-700 mb-6">
-                Work directly with an experienced travel agent who knows Mexico inside and out. 
-                Get personalized recommendations, insider tips, and dedicated support throughout your journey.
-              </p>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>One-on-one consultation</span>
-                </li>
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>Custom itinerary planning</span>
-                </li>
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>24/7 travel support</span>
-                </li>
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>Exclusive deals & upgrades</span>
-                </li>
-              </ul>
-              <a href="#contact" className="block w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white text-center py-4 rounded-xl font-semibold hover:shadow-lg transition">
-                Contact Travel Agent
-              </a>
-            </motion.div>
-
-            {/* AI Assistant Service */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="bg-gradient-to-br from-blue-50 to-teal-50 rounded-2xl p-8 shadow-xl"
-            >
-              <div className="flex items-center mb-6">
-                <Sparkles className="w-12 h-12 text-blue-600 mr-4" />
-                <h3 className="text-3xl font-bold">AI Travel Assistant</h3>
-              </div>
-              <p className="text-gray-700 mb-6">
-                Get instant recommendations powered by advanced AI. Ask questions, explore options, 
-                and find your perfect Mexico vacation 24/7 with our intelligent assistant.
-              </p>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>Instant responses</span>
-                </li>
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>Smart recommendations</span>
-                </li>
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>Available 24/7</span>
-                </li>
-                <li className="flex items-center">
-                  <Star className="w-5 h-5 text-yellow-500 mr-3" />
-                  <span>Real-time availability</span>
-                </li>
-              </ul>
-              <Link to="/ai-assistant" className="block w-full bg-gradient-to-r from-blue-600 to-teal-600 text-white text-center py-4 rounded-xl font-semibold hover:shadow-lg transition">
-                Try AI Assistant
-              </Link>
-            </motion.div>
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Features Grid */}
-      <AnimatedSection className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Why Choose Us</h2>
-            <p className="text-xl text-gray-600">Everything you need for the perfect Mexico vacation</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <motion.div
-              whileHover={{ y: -5 }}
-              className="text-center"
-            >
-              <div className="bg-gradient-to-br from-blue-500 to-teal-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Globe className="w-10 h-10 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Local Expertise</h3>
-              <p className="text-gray-600">Deep knowledge of Mexico's best destinations and hidden gems</p>
-            </motion.div>
-            
-            <motion.div
-              whileHover={{ y: -5 }}
-              className="text-center"
-            >
-              <div className="bg-gradient-to-br from-purple-500 to-pink-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Shield className="w-10 h-10 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Secure Booking</h3>
-              <p className="text-gray-600">Safe, encrypted transactions with trusted partners</p>
-            </motion.div>
-            
-            <motion.div
-              whileHover={{ y: -5 }}
-              className="text-center"
-            >
-              <div className="bg-gradient-to-br from-yellow-500 to-orange-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-10 h-10 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">Flexible Planning</h3>
-              <p className="text-gray-600">Customize your trip exactly how you want it</p>
-            </motion.div>
-            
-            <motion.div
-              whileHover={{ y: -5 }}
-              className="text-center"
-            >
-              <div className="bg-gradient-to-br from-green-500 to-teal-500 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-10 h-10 text-white" />
-              </div>
-              <h3 className="text-xl font-bold mb-2">24/7 Support</h3>
-              <p className="text-gray-600">Always here when you need us, before and during your trip</p>
-            </motion.div>
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Testimonials */}
-      <AnimatedSection className="py-20 bg-white">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">What Our Travelers Say</h2>
-            <p className="text-xl text-gray-600">Real experiences from real people</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {testimonials.map((testimonial, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-                className="bg-gray-50 rounded-2xl p-6"
-              >
-                <div className="flex items-center mb-4">
-                  <img 
-                    src={testimonial.avatar} 
-                    alt={testimonial.name}
-                    className="w-12 h-12 rounded-full mr-4"
-                  />
-                  <div>
-                    <h4 className="font-bold">{testimonial.name}</h4>
-                    <p className="text-sm text-gray-500">{testimonial.location}</p>
-                  </div>
-                </div>
-                <div className="flex mb-3">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
-                  ))}
-                </div>
-                <p className="text-gray-700 italic">"{testimonial.text}"</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Instagram-style Gallery */}
-      <AnimatedSection className="py-20 bg-gradient-to-r from-purple-50 to-pink-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold mb-4">Mexico Moments</h2>
-            <p className="text-xl text-gray-600">Follow our adventures @MexicoTravelPro</p>
-          </div>
-          
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[
-              "https://images.unsplash.com/photo-1512813389649-acb9131ced20?w=400&q=80",
-              "https://images.unsplash.com/photo-1503183711474-e867f59b0f91?w=400&q=80",
-              "https://images.unsplash.com/photo-1536248467711-8d5cb3e75b31?w=400&q=80",
-              "https://images.unsplash.com/photo-1565118531796-763e5082d113?w=400&q=80",
-              "https://images.unsplash.com/photo-1552733407-5d5c46c3bb3b?w=400&q=80",
-              "https://images.unsplash.com/photo-1501619593928-bef49688c888?w=400&q=80"
-            ].map((img, index) => (
-              <motion.div
-                key={index}
-                whileHover={{ scale: 1.05 }}
-                className="relative overflow-hidden rounded-lg aspect-square"
-              >
-                <img 
-                  src={img} 
-                  alt={`Mexico moment ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition flex items-center justify-center opacity-0 hover:opacity-100">
-                  <Camera className="w-8 h-8 text-white" />
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Contact Section */}
-      <AnimatedSection id="contact" className="py-20 bg-gradient-to-br from-blue-600 to-teal-600 text-white">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-4xl font-bold mb-4">Ready to Start Your Mexico Adventure?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Contact our expert travel agent for personalized service
-            </p>
-            
-            <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-8 mb-8">
-              <h3 className="text-2xl font-bold mb-6">Get in Touch with Our Travel Expert</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <a href="tel:+1234567890" className="flex items-center justify-center space-x-3 bg-white/20 rounded-xl p-4 hover:bg-white/30 transition">
-                  <Phone className="w-6 h-6" />
-                  <span className="font-semibold">(123) 456-7890</span>
-                </a>
-                <a href="mailto:travel@mexicotravelpro.com" className="flex items-center justify-center space-x-3 bg-white/20 rounded-xl p-4 hover:bg-white/30 transition">
-                  <Mail className="w-6 h-6" />
-                  <span className="font-semibold">Email Us</span>
-                </a>
-                <a href="#" className="flex items-center justify-center space-x-3 bg-white/20 rounded-xl p-4 hover:bg-white/30 transition">
-                  <MessageCircle className="w-6 h-6" />
-                  <span className="font-semibold">WhatsApp</span>
-                </a>
-              </div>
-            </div>
-            
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button className="bg-white text-blue-600 px-8 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition">
-                Schedule a Call
-              </button>
-              <Link to="/ai-assistant" className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-full text-lg font-semibold hover:shadow-2xl transform hover:scale-105 transition">
-                Try AI Assistant Now
-              </Link>
-            </div>
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Newsletter Signup */}
-      <AnimatedSection className="py-16 bg-gray-100">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <h3 className="text-3xl font-bold mb-4">Stay Updated on Mexico Travel Deals</h3>
-            <p className="text-gray-600 mb-6">Get exclusive offers and travel tips delivered to your inbox</p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <input 
-                type="email" 
-                placeholder="Enter your email" 
-                className="flex-1 px-6 py-3 border-2 border-gray-200 rounded-full focus:border-blue-500 focus:outline-none"
-              />
-              <button className="bg-gradient-to-r from-blue-600 to-teal-500 text-white px-8 py-3 rounded-full hover:shadow-lg transition">
-                Subscribe
-              </button>
-            </div>
-          </div>
-        </div>
-      </AnimatedSection>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <footer className="bg-black border-t border-gray-800 py-16">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
             <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Sun className="w-8 h-8 text-yellow-500" />
-                <span className="text-xl font-bold">Mexico Travel Pro</span>
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center">
+                  <Sun className="w-5 h-5 text-black" />
+                </div>
+                <span className="text-xl font-light text-white">Resorts of Mexico</span>
               </div>
-              <p className="text-gray-400">Your trusted partner for unforgettable Mexico vacations</p>
+              <p className="text-gray-400 font-light">Discovering extraordinary resort experiences across Mexico's most beautiful destinations.</p>
             </div>
             
             <div>
-              <h4 className="font-bold mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#destinations" className="hover:text-white transition">Destinations</a></li>
-                <li><a href="#excursions" className="hover:text-white transition">Excursions</a></li>
-                <li><a href="#services" className="hover:text-white transition">Services</a></li>
-                <li><Link to="/search" className="hover:text-white transition">Search Hotels</Link></li>
+              <h4 className="font-light mb-6 text-white">Destinations</h4>
+              <ul className="space-y-3 text-gray-400 font-light">
+                <li><a href="#" className="hover:text-white transition-colors">Riviera Maya</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Los Cabos</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Puerto Vallarta</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Tulum</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-bold mb-4">Popular Destinations</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white transition">Cancún</a></li>
-                <li><a href="#" className="hover:text-white transition">Playa del Carmen</a></li>
-                <li><a href="#" className="hover:text-white transition">Tulum</a></li>
-                <li><a href="#" className="hover:text-white transition">Cabo San Lucas</a></li>
+              <h4 className="font-light mb-6 text-white">Resort Types</h4>
+              <ul className="space-y-3 text-gray-400 font-light">
+                <li><a href="#" className="hover:text-white transition-colors">Ultra-Luxury</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Family Paradise</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Adults-Only</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Eco-Luxury</a></li>
               </ul>
             </div>
             
             <div>
-              <h4 className="font-bold mb-4">Contact Info</h4>
-              <ul className="space-y-2 text-gray-400">
+              <h4 className="font-light mb-6 text-white">Support</h4>
+              <ul className="space-y-3 text-gray-400 font-light">
                 <li className="flex items-center">
-                  <Phone className="w-4 h-4 mr-2" />
-                  <span>(123) 456-7890</span>
+                  <Phone className="w-4 h-4 mr-3" />
+                  <span>1-800-RESORTS</span>
                 </li>
                 <li className="flex items-center">
-                  <Mail className="w-4 h-4 mr-2" />
-                  <span>travel@mexicotravelpro.com</span>
+                  <Mail className="w-4 h-4 mr-3" />
+                  <span>help@resortsofmexico.com</span>
                 </li>
                 <li className="flex items-center">
-                  <MapPin className="w-4 h-4 mr-2" />
-                  <span>Available Worldwide</span>
+                  <Shield className="w-4 h-4 mr-3" />
+                  <span>24/7 Travel Support</span>
                 </li>
               </ul>
             </div>
           </div>
           
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 Mexico Travel Pro. All rights reserved.</p>
+          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500 font-light">
+            <p>&copy; 2025 Resorts of Mexico. Creating unforgettable resort experiences.</p>
           </div>
         </div>
       </footer>
+
+      {/* Two-Step Destination Modal */}
+      {isDestinationMapOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-gray-900 rounded-2xl shadow-2xl max-w-6xl w-full max-h-[90vh] overflow-hidden"
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-amber-400 to-yellow-600 text-black p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold">
+                    {destinationModalStep === 1 ? 'Choose Your Destination' : 'Choose Resort Type'}
+                  </h2>
+                  <p className="text-black/80">
+                    {destinationModalStep === 1 
+                      ? 'Where would you like to stay in Mexico?' 
+                      : `What type of ${selectedRegion} resort experience are you looking for?`
+                    }
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {destinationModalStep === 2 && (
+                    <button
+                      onClick={() => {
+                        setDestinationModalStep(1);
+                        setSelectedResortType(null);
+                      }}
+                      className="p-2 hover:bg-black/10 rounded-full transition"
+                    >
+                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                      </svg>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => {
+                      setIsDestinationMapOpen(false);
+                      setDestinationModalStep(1);
+                      setSelectedResortType(null);
+                    }}
+                    className="p-2 hover:bg-black/10 rounded-full transition"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Step 1: Location Selection */}
+            {destinationModalStep === 1 && (
+              <div className="p-8 overflow-y-auto max-h-[70vh]">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {/* Riviera Maya */}
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      setSelectedRegion('Riviera Maya');
+                      setDestinationModalStep(2);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300">
+                      <img 
+                        src="https://images.unsplash.com/photo-1570792328831-0c9ce06bf824?w=600&q=80" 
+                        alt="Riviera Maya"
+                        className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <h3 className="text-xl font-semibold text-white mb-2">Riviera Maya</h3>
+                        <p className="text-gray-300 text-sm mb-3">Ancient Mayan heritage meets luxury beachfront</p>
+                        <div className="flex items-center text-amber-400">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Caribbean Coast</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Los Cabos */}
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      setSelectedRegion('Los Cabos');
+                      setDestinationModalStep(2);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300">
+                      <img 
+                        src="https://images.unsplash.com/photo-1544966503-7cc5ac882d5e?w=600&q=80" 
+                        alt="Los Cabos"
+                        className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <h3 className="text-xl font-semibold text-white mb-2">Los Cabos</h3>
+                        <p className="text-gray-300 text-sm mb-3">Desert landscapes meet Pacific Ocean luxury</p>
+                        <div className="flex items-center text-amber-400">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Baja California Sur</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Puerto Vallarta */}
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      setSelectedRegion('Puerto Vallarta');
+                      setDestinationModalStep(2);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300">
+                      <img 
+                        src="https://images.unsplash.com/photo-1568402102990-bc541580b59f?w=600&q=80" 
+                        alt="Puerto Vallarta"
+                        className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <h3 className="text-xl font-semibold text-white mb-2">Puerto Vallarta</h3>
+                        <p className="text-gray-300 text-sm mb-3">Authentic Mexican culture with Pacific charm</p>
+                        <div className="flex items-center text-amber-400">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Jalisco Coast</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Tulum */}
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      setSelectedRegion('Tulum');
+                      setDestinationModalStep(2);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300">
+                      <img 
+                        src="https://images.unsplash.com/photo-1518105779142-d975f22f1b0a?w=600&q=80" 
+                        alt="Tulum"
+                        className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <h3 className="text-xl font-semibold text-white mb-2">Tulum</h3>
+                        <p className="text-gray-300 text-sm mb-3">Bohemian luxury meets ancient ruins</p>
+                        <div className="flex items-center text-amber-400">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Quintana Roo</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Cancun */}
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      setSelectedRegion('Cancun');
+                      setDestinationModalStep(2);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300">
+                      <img 
+                        src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&q=80" 
+                        alt="Cancun"
+                        className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <h3 className="text-xl font-semibold text-white mb-2">Cancun</h3>
+                        <p className="text-gray-300 text-sm mb-3">Vibrant nightlife meets pristine beaches</p>
+                        <div className="flex items-center text-amber-400">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Hotel Zone</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Playa del Carmen */}
+                  <motion.div
+                    whileHover={{ y: -5 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      setSelectedRegion('Playa del Carmen');
+                      setDestinationModalStep(2);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300">
+                      <img 
+                        src="https://images.unsplash.com/photo-1512149177596-f817c7ef5d4c?w=600&q=80" 
+                        alt="Playa del Carmen"
+                        className="w-full h-48 object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                      <div className="absolute bottom-0 left-0 right-0 p-6">
+                        <h3 className="text-xl font-semibold text-white mb-2">Playa del Carmen</h3>
+                        <p className="text-gray-300 text-sm mb-3">Cosmopolitan beach town with local flavor</p>
+                        <div className="flex items-center text-amber-400">
+                          <MapPin className="w-4 h-4 mr-2" />
+                          <span className="text-sm">Quinta Avenida</span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Resort Type Selection */}
+            {destinationModalStep === 2 && (
+              <div className="p-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                  {/* Family Friendly Resort */}
+                  <motion.div
+                    whileHover={{ y: -10 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      handleRegionSelect({ 
+                        id: selectedRegion.toLowerCase().replace(' ', '-'), 
+                        name: selectedRegion, 
+                        type: 'family-friendly' 
+                      });
+                      setIsDestinationMapOpen(false);
+                      setDestinationModalStep(1);
+                      setSelectedRegion(null);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300 h-96">
+                      <img 
+                        src="https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80" 
+                        alt="Family Resort"
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                      <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8">
+                        <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center mb-6">
+                          <Users className="w-10 h-10 text-black" />
+                        </div>
+                        <h3 className="text-3xl font-semibold text-white mb-4">Family-Friendly Resorts</h3>
+                        <p className="text-gray-300 text-lg mb-6 max-w-sm">
+                          Perfect for families with kids' clubs, water parks, and activities for all ages
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2 mb-6">
+                          <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white">Kids Clubs</span>
+                          <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white">Water Parks</span>
+                          <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white">Family Suites</span>
+                        </div>
+                        <div className="inline-flex items-center text-amber-400 font-medium">
+                          Choose Family Resort <ChevronRight className="w-5 h-5 ml-2" />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+
+                  {/* Adults Only Resort */}
+                  <motion.div
+                    whileHover={{ y: -10 }}
+                    className="group cursor-pointer"
+                    onClick={() => {
+                      handleRegionSelect({ 
+                        id: selectedRegion.toLowerCase().replace(' ', '-'), 
+                        name: selectedRegion, 
+                        type: 'adults-only' 
+                      });
+                      setIsDestinationMapOpen(false);
+                      setDestinationModalStep(1);
+                      setSelectedRegion(null);
+                    }}
+                  >
+                    <div className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-700 hover:border-amber-400/50 transition-all duration-300 h-96">
+                      <img 
+                        src="https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80" 
+                        alt="Adults Only Resort"
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+                      <div className="absolute inset-0 flex flex-col justify-center items-center text-center p-8">
+                        <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center mb-6">
+                          <Waves className="w-10 h-10 text-black" />
+                        </div>
+                        <h3 className="text-3xl font-semibold text-white mb-4">Adults-Only Resorts</h3>
+                        <p className="text-gray-300 text-lg mb-6 max-w-sm">
+                          Sophisticated escapes designed for couples seeking tranquility and romance
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2 mb-6">
+                          <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white">Spa & Wellness</span>
+                          <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white">Fine Dining</span>
+                          <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white">Peaceful Atmosphere</span>
+                        </div>
+                        <div className="inline-flex items-center text-amber-400 font-medium">
+                          Choose Adults-Only <ChevronRight className="w-5 h-5 ml-2" />
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </div>
+      )}
+
+      {/* Resort Location Selector */}
+      {isLocationSelectorOpen && (
+        <ResortLocationSelector
+          selectedCategory={selectedResortCategory}
+          onClose={handleCloseLocationSelector}
+        />
+      )}
+
+      {/* Navigation Loading Screen - Shows immediately when location is clicked */}
+      <AnimatePresence>
+        {isNavigating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-gradient-to-br from-blue-900 via-teal-800 to-green-900 z-50 flex items-center justify-center"
+          >
+            {/* Animated Background Elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              {/* Floating Palm Trees */}
+              <motion.div
+                animate={{ 
+                  y: [0, -20, 0],
+                  rotate: [0, 5, -5, 0]
+                }}
+                transition={{ 
+                  duration: 4, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+                className="absolute top-20 left-20"
+              >
+                <Palmtree className="w-16 h-16 text-green-400 opacity-20" />
+              </motion.div>
+              
+              <motion.div
+                animate={{ 
+                  y: [0, -15, 0],
+                  rotate: [0, -3, 3, 0]
+                }}
+                transition={{ 
+                  duration: 5, 
+                  repeat: Infinity, 
+                  ease: "easeInOut",
+                  delay: 1
+                }}
+                className="absolute top-40 right-32"
+              >
+                <Palmtree className="w-12 h-12 text-green-300 opacity-15" />
+              </motion.div>
+
+              {/* Floating Waves */}
+              <motion.div
+                animate={{ 
+                  x: [0, 30, 0],
+                  opacity: [0.1, 0.3, 0.1]
+                }}
+                transition={{ 
+                  duration: 6, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+                className="absolute bottom-20 left-40"
+              >
+                <Waves className="w-20 h-20 text-blue-400 opacity-20" />
+              </motion.div>
+
+              <motion.div
+                animate={{ 
+                  x: [0, -25, 0],
+                  opacity: [0.15, 0.35, 0.15]
+                }}
+                transition={{ 
+                  duration: 7, 
+                  repeat: Infinity, 
+                  ease: "easeInOut",
+                  delay: 2
+                }}
+                className="absolute bottom-32 right-20"
+              >
+                <Waves className="w-16 h-16 text-cyan-400 opacity-25" />
+              </motion.div>
+
+              {/* Sun */}
+              <motion.div
+                animate={{ 
+                  rotate: 360,
+                  scale: [1, 1.1, 1]
+                }}
+                transition={{ 
+                  rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+                  scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+                }}
+                className="absolute top-16 right-16"
+              >
+                <Sun className="w-24 h-24 text-yellow-400 opacity-30" />
+              </motion.div>
+            </div>
+
+            {/* Main Loading Content */}
+            <div className="text-center z-10 px-6">
+              {/* Animated Resort Icon */}
+              <motion.div
+                animate={{ 
+                  y: [0, -10, 0],
+                  scale: [1, 1.05, 1]
+                }}
+                transition={{ 
+                  duration: 2, 
+                  repeat: Infinity, 
+                  ease: "easeInOut" 
+                }}
+                className="mb-8"
+              >
+                <div className="w-32 h-32 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl">
+                  <Palmtree className="w-16 h-16 text-black" />
+                </div>
+              </motion.div>
+
+              {/* Loading Text */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-4xl md:text-6xl font-thin mb-6 text-white"
+              >
+                Finding Your Perfect Resort
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.5 }}
+                className="text-xl md:text-2xl text-cyan-200 font-light mb-8"
+              >
+                We're on island time... ⏰ 🏝️
+              </motion.p>
+
+              {/* Loading Messages */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.7 }}
+                className="space-y-3 mb-8"
+              >
+                <motion.p
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="text-gray-300 text-lg"
+                >
+                  Taking you to paradise...
+                </motion.p>
+                <motion.p
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 0.7 }}
+                  className="text-gray-400"
+                >
+                  Preparing your luxury escape
+                </motion.p>
+              </motion.div>
+
+              {/* Animated Loading Bar */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.9 }}
+                className="w-full max-w-md mx-auto"
+              >
+                <div className="bg-gray-700 rounded-full h-2 overflow-hidden">
+                  <motion.div
+                    animate={{ 
+                      x: ['-100%', '100%'],
+                      opacity: [0.7, 1, 0.7]
+                    }}
+                    transition={{ 
+                      duration: 2, 
+                      repeat: Infinity, 
+                      ease: "easeInOut" 
+                    }}
+                    className="h-full bg-gradient-to-r from-amber-400 to-yellow-600 rounded-full"
+                    style={{ width: '50%' }}
+                  />
+                </div>
+                <p className="text-center text-gray-400 text-sm mt-3">
+                  Your perfect resort awaits... 🌺
+                </p>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

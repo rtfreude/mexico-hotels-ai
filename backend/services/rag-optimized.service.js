@@ -57,9 +57,9 @@ class OptimizedRAGService {
 
   initializeQuickResponses() {
     // Pre-computed responses for common greetings
-    this.quickResponses.set('hello', "Hello! I'm Pepe, your personal Mexico travel assistant. I'm here to help you find the perfect hotel for your Mexican vacation. Where are you thinking of staying? Popular destinations include Cancun, Playa del Carmen, Tulum, and Puerto Vallarta!");
-    this.quickResponses.set('hi', "Hi there! I'm Pepe, and I'd love to help you plan your Mexico trip. What kind of hotel experience are you looking for? Beach resort, boutique hotel, or something else?");
-    this.quickResponses.set('hey', "Hey! Welcome! I'm Pepe, your Mexico hotel expert. Tell me about your dream vacation - are you looking for beaches, culture, adventure, or a mix of everything?");
+    this.quickResponses.set('hello', "Hello! I'm Maya, your personal Mexico travel assistant. I'm here to help you find the perfect hotel for your Mexican vacation. Where are you thinking of staying? Popular destinations include Cancun, Playa del Carmen, Tulum, and Puerto Vallarta!");
+    this.quickResponses.set('hi', "Hi there! I'm Maya, and I'd love to help you plan your Mexico trip. What kind of hotel experience are you looking for? Beach resort, boutique hotel, or something else?");
+    this.quickResponses.set('hey', "Hey! Welcome! I'm Maya, your Mexico hotel expert. Tell me about your dream vacation - are you looking for beaches, culture, adventure, or a mix of everything?");
     this.quickResponses.set('help', "I'm here to help you find amazing hotels in Mexico! Just tell me:\n- Where you want to go (like Cancun, Tulum, etc.)\n- Your budget preferences\n- What amenities matter to you\n- When you're planning to travel\n\nI'll find the perfect matches for you!");
   }
 
@@ -404,7 +404,7 @@ class OptimizedRAGService {
       }
       
       // Use GPT-3.5-turbo for faster responses
-      const systemPrompt = `You are Pepe AI, a friendly FEMALE travel assistant for Mexico hotels.
+      const systemPrompt = `You are Maya AI, a friendly FEMALE travel assistant for Mexico hotels.
         
         IMPORTANT: You are FEMALE. Keep responses concise and helpful.
         

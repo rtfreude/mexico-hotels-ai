@@ -1,5 +1,5 @@
 import express from 'express';
-import ragService from '../services/rag.service.js';
+import ragService from '../services/rag-ultra-optimized.service.js';
 import responseOrganizerService from '../services/response-organizer.service.js';
 import performanceMonitor from '../utils/performance.js';
 import crypto from 'crypto';
@@ -36,26 +36,73 @@ router.post('/chat', async (req, res) => {
     
     performanceMonitor.startTimer(`${requestId}-rag`);
     
-    // Process query with optimized service
+    // Process query with ultra-optimized service
     const response = await ragService.processUserQuery(query, session);
     
     performanceMonitor.endTimer(`${requestId}-rag`);
     
-    // Run post-processing and wait for it to complete
-    performanceMonitor.startTimer(`${requestId}-postprocess`);
+    // Skip post-processing for quick responses (greetings) to improve performance
+    const queryLower = query.toLowerCase().trim();
+    const isQuickResponse = ['hello', 'hi', 'hey', 'help', 'hola', 'good morning', 'good afternoon', 'good evening'].includes(queryLower) || 
+                           queryLower.match(/^(hi|hello|hey)!?$/);
     
-    const [organizedData, followUpSuggestions] = await Promise.all([
-      responseOrganizerService.analyzeAndOrganizeResponse(response.message, query, session),
-      responseOrganizerService.generateFollowUpSuggestions(session, query)
-    ]).catch(error => {
-      console.error('Error in post-processing:', error);
-      return [null, []];
-    });
+    let organizedData = null;
+    let followUpSuggestions = [];
     
-    performanceMonitor.endTimer(`${requestId}-postprocess`);
+    if (!isQuickResponse && response.message.length > 50) {
+      // Only run post-processing for complex queries
+      performanceMonitor.startTimer(`${requestId}-postprocess`);
+      
+      const [organizedDataResult, followUpSuggestionsResult] = await Promise.all([
+        responseOrganizerService.analyzeAndOrganizeResponse(response.message, query, session),
+        responseOrganizerService.generateFollowUpSuggestions(session, query)
+      ]).catch(error => {
+        console.error('Error in post-processing:', error);
+        return [null, []];
+      });
+      
+      organizedData = organizedDataResult;
+      followUpSuggestions = followUpSuggestionsResult;
+      
+      performanceMonitor.endTimer(`${requestId}-postprocess`);
+    } else {
+      // For quick responses, provide minimal organized data and default suggestions
+      organizedData = {
+        responseType: 'general',
+        extractedData: {
+          hotels: [],
+          restaurants: [],
+          activities: [],
+          transportation: [],
+          general: { tips: [], insights: [] }
+        },
+        mainFocus: 'Greeting',
+        followUpSuggestions: []
+      };
+      
+      followUpSuggestions = [
+        "Show me hotels in Cancun",
+        "What about Playa del Carmen?",
+        "Find luxury resorts in Tulum",
+        "Budget hotels in Puerto Vallarta"
+      ];
+      
+      console.log('⚡ Skipped post-processing for quick response');
+    }
     
     // Get updated session data after analysis
     let sessionData = responseOrganizerService.getSessionData(session);
+    
+    // If RAG service has data (especially after location changes), prioritize it
+    if (response.hotels || response.restaurants || response.activities) {
+      sessionData = {
+        hotels: response.hotels || sessionData.hotels || [],
+        restaurants: response.restaurants || sessionData.restaurants || [],
+        activities: response.activities || sessionData.activities || [],
+        transportation: sessionData.transportation || [],
+        general: sessionData.general || []
+      };
+    }
     
     // If we have real hotel data from the RAG service and the user asked for hotels, replace the simplified ones
     if (userAskedHotels && response.hotels && response.hotels.length > 0) {
@@ -68,46 +115,45 @@ router.post('/chat', async (req, res) => {
       responseOrganizerService.sessionData.set(session, sessionData);
     }
     
-    // Filter returned sessionData so we don't show categories the user didn't ask for
-    // Use the latest organizedData (analysis) to decide which categories to expose
+    // NEW LOGIC: Show categories if they have accumulated results in the session
+    // This preserves categories across queries for better user experience
     const organized = organizedData || {};
     const extracted = organized.extractedData || {};
     
     const filteredSessionData = { ...sessionData };
     
-    // Hide restaurants unless analysis explicitly includes them or the user asked about food/restaurants
-    if (!(extracted.restaurants && extracted.restaurants.length > 0) &&
-        !(organized.responseType === 'restaurants' || organized.responseType === 'mixed') &&
-        !userAskedRestaurants) {
+    // Show restaurants if we have accumulated restaurant results OR user asked in current query
+    // This allows restaurants to persist even when asking about activities
+    if (!userAskedRestaurants && !(sessionData.restaurants && sessionData.restaurants.length > 0)) {
       filteredSessionData.restaurants = [];
     }
     
-    // Hide activities unless analysis explicitly includes them or the user asked about activities/tours
-    if (!(extracted.activities && extracted.activities.length > 0) &&
-        !(organized.responseType === 'activities' || organized.responseType === 'mixed') &&
-        !userAskedActivities) {
+    // Show activities if we have accumulated activity results OR user asked in current query  
+    // This allows activities to persist even when asking about restaurants
+    if (!userAskedActivities && !(sessionData.activities && sessionData.activities.length > 0)) {
       filteredSessionData.activities = [];
     }
     
-    // Always hide hotels unless the user explicitly asked for hotels
-    if (!userAskedHotels) {
+    // Show hotels if we have accumulated hotel results OR user asked in current query
+    // This allows hotels to persist even when asking about restaurants/activities
+    if (!userAskedHotels && !(sessionData.hotels && sessionData.hotels.length > 0)) {
       filteredSessionData.hotels = [];
     }
     
     // Return the filtered sessionData to the client (do not mutate the stored session unless full data replacement happened above)
     sessionData = filteredSessionData;
 
-    // Enforce the product rule on the organized analysis as well:
-    // make sure organizedData doesn't include restaurants/activities unless the user explicitly asked.
+    // Update organized data to be consistent with session-based filtering
+    // Show categories in organized data if they have accumulated results OR user asked in current query
     if (organized) {
       try {
-        if (!userAskedRestaurants) {
+        if (!userAskedRestaurants && !(sessionData.restaurants && sessionData.restaurants.length > 0)) {
           if (organized.extractedData) organized.extractedData.restaurants = [];
         }
-        if (!userAskedActivities) {
+        if (!userAskedActivities && !(sessionData.activities && sessionData.activities.length > 0)) {
           if (organized.extractedData) organized.extractedData.activities = [];
         }
-        if (!userAskedHotels) {
+        if (!userAskedHotels && !(sessionData.hotels && sessionData.hotels.length > 0)) {
           if (organized.extractedData) organized.extractedData.hotels = [];
         }
         // Recompute responseType conservatively
@@ -342,6 +388,24 @@ router.get('/health', (req, res) => {
     service: 'AI Chat Service',
     timestamp: new Date().toISOString()
   });
+});
+
+// Cache statistics endpoint for monitoring
+router.get('/cache-stats', (req, res) => {
+  try {
+    const stats = ragService.getCacheStats();
+    res.json({
+      status: 'ok',
+      cacheStats: stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error getting cache stats:', error);
+    res.status(500).json({
+      error: 'Failed to get cache statistics',
+      message: error.message
+    });
+  }
 });
 
 export default router;

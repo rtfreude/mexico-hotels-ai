@@ -1,6 +1,7 @@
 let openai = null;
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import enhancedCache from './enhanced-cache.service.js';
 
 dotenv.config();
 
@@ -30,7 +31,7 @@ class ResponseOrganizerService {
     this.organizedDataCache = new Map();
   }
 
-  // Analyze AI response and extract structured data (optimized)
+  // Analyze AI response and extract structured data (optimized with caching)
   async analyzeAndOrganizeResponse(aiMessage, userQuery, sessionId = 'default') {
     try {
       console.log('Analyzing response for query:', userQuery);
@@ -39,6 +40,14 @@ class ResponseOrganizerService {
       // Skip analysis for very short responses
       if (aiMessage.length < 50) {
         return this.getDefaultAnalysis();
+      }
+
+      // Check cache first
+      const cached = enhancedCache.getAnalysis(aiMessage, userQuery);
+      if (cached) {
+        console.log('✅ Using cached analysis');
+        this.storeOrganizedData(sessionId, cached, userQuery);
+        return cached;
       }
 
       const completion = await getOpenAI().chat.completions.create({
@@ -178,6 +187,9 @@ class ResponseOrganizerService {
       
       console.log('Sanitized analysis result:', JSON.stringify(analysis, null, 2));
       
+      // Cache the analysis result
+      enhancedCache.setAnalysis(aiMessage, userQuery, analysis);
+      
       // Store the organized data for this session (sanitized)
       this.storeOrganizedData(sessionId, analysis, userQuery);
       
@@ -236,10 +248,8 @@ class ResponseOrganizerService {
       if (!hasFullHotelData) {
         sessionData.hotels = [...sessionData.hotels, ...newHotels];
       }
-    } else {
-      // If the user did not ask about hotels, ensure we clear any previously cached hotels for this session
-      sessionData.hotels = [];
     }
+    // Keep existing hotel data in session - don't clear it
     
     // Only add restaurants if the user explicitly asked about dining/food.
     // Per product requirement: do not populate restaurant category unless the user asked for it.
@@ -251,10 +261,8 @@ class ResponseOrganizerService {
         !isDuplicate(sessionData.restaurants, restaurant, 'name')
       );
       sessionData.restaurants = [...sessionData.restaurants, ...newRestaurants];
-    } else {
-      // If the user did not ask about restaurants, ensure we clear any previously cached restaurants for this session
-      sessionData.restaurants = [];
     }
+    // Keep existing restaurant data in session - don't clear it
     
     // Only add activities if the user explicitly asked about activities/tours/excursions.
     // Per product requirement: do not populate activities category unless the user asked for it.
@@ -266,10 +274,8 @@ class ResponseOrganizerService {
         !isDuplicate(sessionData.activities, activity, 'name')
       );
       sessionData.activities = [...sessionData.activities, ...newActivities];
-    } else {
-      // If the user did not ask about activities, ensure we clear any previously cached activities for this session
-      sessionData.activities = [];
     }
+    // Keep existing activity data in session - don't clear it
     
     // Transportation and general info remain as before
     if (analysis.extractedData.transportation?.length > 0) {

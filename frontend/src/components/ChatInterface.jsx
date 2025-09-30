@@ -4,7 +4,15 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import ConversationDisplay from './ConversationDisplay';
 
-function ChatInterface({ setHotels, loading, setLoading, setAiResponse, onNewMessage, onSessionDataUpdate }) {
+function ChatInterface({ 
+  setHotels, 
+  loading, 
+  setLoading, 
+  setAiResponse, 
+  aiResponse, // Add this prop
+  onNewMessage, 
+  onSessionDataUpdate 
+}) {
   const [input, setInput] = useState('');
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -20,6 +28,14 @@ function ChatInterface({ setHotels, loading, setLoading, setAiResponse, onNewMes
       setSessionId(storedSessionId);
     }
   }, []);
+
+  // Handle initial AI response from auto-search
+  useEffect(() => {
+    if (aiResponse && messages.length === 0) {
+      // Add the AI response to the conversation if it's from auto-search
+      setMessages([{ type: 'ai', content: aiResponse }]);
+    }
+  }, [aiResponse]);
 
   // Cleanup on unmount
   useEffect(() => {

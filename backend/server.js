@@ -14,7 +14,7 @@ import hotelRoutes from './routes/hotel.routes.js';
 import searchRoutes from './routes/search.routes.js';
 
 // Import services and data
-import ragService from './services/rag.service.js';
+import ragService from './services/rag-ultra-optimized.service.js';
 import sampleHotels from './data/sample-hotels.js';
 
 // Load environment variables

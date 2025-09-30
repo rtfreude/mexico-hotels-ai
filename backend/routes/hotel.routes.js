@@ -126,24 +126,42 @@ router.get('/destinations/popular', async (req, res) => {
 // Initialize/seed hotel data in vector database
 router.post('/seed', async (req, res) => {
   try {
-    const { destination = 'Cancun', limit = 20 } = req.body;
+    const { destination = 'Cancun', limit = 20, useSampleData = false } = req.body;
     
     console.log(`Seeding hotel data for ${destination} to vector database...`);
     
-    // Fetch hotels from TripAdvisor
-    const hotels = await tripAdvisorService.searchMexicoHotels(destination, { limit });
+    // Force use of sample data if requested, or if TripAdvisor fails
+    if (useSampleData) {
+      console.log('Using sample data for seeding...');
+      await ragService.storeHotelData(sampleHotels);
+      
+      return res.json({ 
+        message: 'Seeded with sample data (forced)',
+        count: sampleHotels.length 
+      });
+    }
+    
+    // Try TripAdvisor first
+    let hotels = [];
+    try {
+      hotels = await tripAdvisorService.searchMexicoHotels(destination, { limit });
+    } catch (error) {
+      console.log('TripAdvisor failed, using sample data:', error.message);
+      hotels = [];
+    }
     
     if (hotels.length > 0) {
-      // Store in vector database for RAG
+      // Store TripAdvisor data in vector database
       await ragService.storeHotelData(hotels);
       
       res.json({ 
-        message: 'Hotel data seeded successfully',
+        message: 'Hotel data seeded successfully from TripAdvisor',
         destination: destination,
         count: hotels.length 
       });
     } else {
-      // Fallback to sample data
+      // Fallback to sample data (which includes all our new Cancun adults-only resorts)
+      console.log('No TripAdvisor data found, using sample data...');
       await ragService.storeHotelData(sampleHotels);
       
       res.json({ 
