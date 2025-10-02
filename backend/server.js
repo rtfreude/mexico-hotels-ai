@@ -147,6 +147,22 @@ app.listen(PORT, async () => {
   
   // Initialize data after server starts
   await initializeData();
+  
+  // Diagnostic: log the public outbound IP so you can add it to external allowlists
+  (async function logOutboundIP(){
+    try {
+      // Use a public service to report the caller's IP. Node 18+ has global fetch.
+      const res = await fetch('https://api.ipify.org?format=json');
+      if (res && res.ok) {
+        const body = await res.json();
+        console.log('🌐 Public outbound IP (for allowlist testing):', body.ip);
+      } else {
+        console.log('Unable to determine public outbound IP for allowlist testing');
+      }
+    } catch (e) {
+      console.warn('Error fetching public outbound IP:', e && e.message ? e.message : e);
+    }
+  })();
 });
 
 export default app;
