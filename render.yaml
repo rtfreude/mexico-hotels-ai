@@ -3,7 +3,7 @@ services:
     name: mexico-hotels-backend
     env: node
     plan: starter
-    branch: main
+  branch: ci/strict-peer-deps
     repo: https://github.com/rtfreude/mexico-hotels-ai
     buildCommand: npm --prefix backend install
     startCommand: npm --prefix backend start
