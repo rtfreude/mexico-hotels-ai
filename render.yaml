@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: mexico-hotels-backend
+    env: node
+    plan: starter
+    branch: main
+    repo: https://github.com/rtfreude/mexico-hotels-ai
+    buildCommand: npm --prefix backend install
+    startCommand: npm --prefix backend start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SANITY_PROJECT_ID
+        fromService: null
+      - key: SANITY_DATASET
+        value: production
+      - key: FRONTEND_URL
+        fromService: null
+    autoDeploy: true
+
+  - type: redis
+    name: mexico-hotels-redis
+    plan: starter
+
+# Notes:
+# - Replace 'fromService: null' entries with secrets using the Render dashboard
+#   or provide their values as environment variables in the Render UI after
+#   connecting the repository.
+# - This manifest is a starter; customize the build/start commands and plan
+#   according to your Render account and resource requirements.
