@@ -34,7 +34,8 @@ function SuggestedSearches({ setHotels, setLoading, setAiResponse, maxItems = 14
     let ignore = false;
     const fetchPopularSearches = async () => {
       try {
-        const response = await axios.get('http://localhost:5001/api/search/popular');
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+  const response = await axios.get(`${base}/api/search/popular`);
         if (!ignore && Array.isArray(response.data)) {
           // Normalize to objects with metadata
           const popularAsObjs = response.data.map((label) => ({
@@ -78,7 +79,8 @@ function SuggestedSearches({ setHotels, setLoading, setAiResponse, maxItems = 14
 
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5001/api/ai/chat', {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+      const response = await axios.post(`${base}/api/ai/chat`, {
         query,
       });
 

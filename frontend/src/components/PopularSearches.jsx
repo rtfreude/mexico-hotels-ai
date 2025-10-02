@@ -12,7 +12,8 @@ function PopularSearches({ setHotels, setLoading, setAiResponse }) {
 
   const fetchPopularSearches = async () => {
     try {
-      const response = await axios.get('http://localhost:5001/api/search/popular');
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+  const response = await axios.get(`${base}/api/search/popular`);
       setPopularSearches(response.data);
     } catch (error) {
       console.error('Error fetching popular searches:', error);
@@ -22,7 +23,8 @@ function PopularSearches({ setHotels, setLoading, setAiResponse }) {
   const handlePopularSearch = async (searchTerm) => {
     setLoading(true);
     try {
-      const response = await axios.post('http://localhost:5001/api/ai/chat', {
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+  const response = await axios.post(`${base}/api/ai/chat`, {
         query: searchTerm
       });
 

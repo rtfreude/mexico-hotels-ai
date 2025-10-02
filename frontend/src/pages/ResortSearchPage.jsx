@@ -378,18 +378,18 @@ function ResortSearchPage() {
   };
 
   // Generate resort-specific affiliate link
-  const generateResortLink = (resortBrand, destination, checkin, checkout, guests = 2) => {
-    const affiliate = RESORT_AFFILIATES[resortBrand] || RESORT_AFFILIATES.marriott;
-    const params = new URLSearchParams({
-      destination: destination || 'Mexico',
-      startDate: checkin || '',
-      endDate: checkout || '',
-      rooms: '1',
-      adults: guests.toString(),
-      affiliateId: affiliate.code
-    });
-    return `${affiliate.baseUrl}?${params.toString()}`;
-  };
+  // const generateResortLink = (resortBrand, destination, checkin, checkout, guests = 2) => {
+  //   const affiliate = RESORT_AFFILIATES[resortBrand] || RESORT_AFFILIATES.marriott;
+  //   const params = new URLSearchParams({
+  //     destination: destination || 'Mexico',
+  //     startDate: checkin || '',
+  //     endDate: checkout || '',
+  //     rooms: '1',
+  //     adults: guests.toString(),
+  //     affiliateId: affiliate.code
+  //   });
+  //   return `${affiliate.baseUrl}?${params.toString()}`;
+  // };
 
   // Auto-search with AI when destination and type are provided
   useEffect(() => {
@@ -418,7 +418,7 @@ function ResortSearchPage() {
     
     // Handle legacy parameters from wizard
     const city = urlParams.get('city');
-    const region = urlParams.get('region');
+    // const region = urlParams.get('region');
     const checkin = urlParams.get('checkin');
     const checkout = urlParams.get('checkout');
     const guests = urlParams.get('guests');
@@ -472,7 +472,8 @@ function ResortSearchPage() {
       }
       
       // Use consistent API endpoint with ChatInterface
-      const response = await fetch('http://localhost:5001/api/ai/chat', {
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+  const response = await fetch(`${base}/api/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

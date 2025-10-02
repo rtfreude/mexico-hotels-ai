@@ -15,7 +15,8 @@ function SearchBar({ setHotels, setLoading, setAiResponse }) {
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5001/api/search', {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+      const response = await axios.post(`${base}/api/search`, {
         query: searchQuery.trim(),
         limit: 9
       });

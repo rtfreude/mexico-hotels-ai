@@ -8,7 +8,8 @@ const client = sanityClient({ projectId, dataset, apiVersion: '2024-01-01', useC
 const builder = imageUrlBuilder(client);
 
 async function run(){
-  const res = await fetch('http://localhost:5001/api/sanity/preview/hotels');
+  const base = process.env.VITE_API_BASE_URL || 'http://localhost:5001';
+  const res = await fetch(`${base}/api/sanity/preview/hotels`);
   const data = await res.json();
   const first = data[0];
   const imgObj = first.images && first.images[0];

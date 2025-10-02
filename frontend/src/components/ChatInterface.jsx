@@ -74,7 +74,8 @@ function ChatInterface({
     setLoading(true);
 
     try {
-      const response = await axios.post('http://localhost:5001/api/ai/chat', {
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+  const response = await axios.post(`${base}/api/ai/chat`, {
         query: userMessage,
         sessionId: sessionId
       }, {
@@ -162,7 +163,8 @@ function ChatInterface({
   const clearConversation = async () => {
     if (sessionId) {
       try {
-        await axios.post('http://localhost:5001/api/ai/clear-session', {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5001';
+        await axios.post(`${base}/api/ai/clear-session`, {
           sessionId: sessionId
         });
         setMessages([]);
