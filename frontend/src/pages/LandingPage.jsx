@@ -3,6 +3,9 @@ import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 import { Link, useNavigate } from 'react-router-dom';
 import ResortLocationSelector from '../components/ResortLocationSelector';
+import { fetchCopyBlock } from '../lib/useSanityCopy';
+import { fetchSiteSettings } from '../lib/useSanitySiteSettings';
+import PortableTextRenderer from '../components/PortableTextRenderer';
 import { 
   MapPin, 
   Search, 
@@ -77,8 +80,12 @@ const LandingPage = () => {
   const [selectedRegion, setSelectedRegion] = useState(null);
   const [isDestinationMapOpen, setIsDestinationMapOpen] = useState(false);
   const [destinationModalStep, setDestinationModalStep] = useState(1); // 1 = locations, 2 = resort type
-  const [selectedResortType, setSelectedResortType] = useState(null);
   const [isNavigating, setIsNavigating] = useState(false); // Add navigation loading state
+  const [sanityHero, setSanityHero] = useState(null);
+  const [sanityDestinations, setSanityDestinations] = useState(null);
+  const [sanityNav, setSanityNav] = useState(null);
+  const [sanityFooter, setSanityFooter] = useState(null);
+  const [siteSettings, setSiteSettings] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -89,15 +96,39 @@ const LandingPage = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleOpenLocationSelector = (categoryType) => {
-    setSelectedResortCategory(categoryType);
-    setIsLocationSelectorOpen(true);
-  };
-
   const handleCloseLocationSelector = () => {
     setIsLocationSelectorOpen(false);
     setSelectedResortCategory(null);
   };
+
+  // Fetch editable hero copy from Sanity (document type `copyBlock` with key 'landing:hero')
+  useEffect(() => {
+    let mounted = true;
+    async function load() {
+      try {
+        const [heroDoc, destDoc, navDoc, footerDoc] = await Promise.all([
+          fetchCopyBlock('landing:hero'),
+          fetchCopyBlock('landing:destinations'),
+          fetchCopyBlock('landing:nav'),
+            fetchCopyBlock('landing:footer')
+        ]);
+          // also fetch site settings singleton
+          const settings = await fetchSiteSettings().catch(() => null);
+        if (mounted) {
+          if (heroDoc) setSanityHero(heroDoc);
+          if (destDoc) setSanityDestinations(destDoc);
+          if (navDoc) setSanityNav(navDoc);
+          if (footerDoc) setSanityFooter(footerDoc);
+            if (settings) setSiteSettings(settings);
+        }
+      } catch (e) {
+        // ignore — keep the default copy
+        console.warn('Failed to load sanity landing copy', e && e.message ? e.message : e);
+      }
+    }
+    load();
+    return () => { mounted = false; };
+  }, []);
 
   const handleRegionSelect = (region) => {
     setSelectedRegion(region);
@@ -154,20 +185,34 @@ const LandingPage = () => {
               <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center">
                 <Sun className="w-6 h-6 text-black" />
               </div>
-              <span className="text-2xl font-light tracking-wide text-white">
-                Resorts of Mexico
+              <span className="text-2xl font-light tracking-wide text-white" data-sanity-source={siteSettings && siteSettings.siteTitle ? 'siteSettings:siteTitle' : undefined}>
+                {siteSettings && siteSettings.siteTitle ? siteSettings.siteTitle : null}
               </span>
             </div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#destinations" className="text-gray-300 hover:text-white transition-colors duration-300 font-light">Destinations</a>
-              <a href="#categories" className="text-gray-300 hover:text-white transition-colors duration-300 font-light">Resort Types</a>
-              <a href="#testimonials" className="text-gray-300 hover:text-white transition-colors duration-300 font-light">Reviews</a>
-              <Link 
-                to="/resorts/ai-assistant" 
-                className="bg-gradient-to-r from-amber-400 to-yellow-600 text-black px-6 py-3 rounded-sm hover:shadow-lg transition-all duration-300 font-medium tracking-wide"
-              >
-                Find Your Resort
-              </Link>
+              {sanityNav && sanityNav.bodyPlain ? (
+                sanityNav.bodyPlain.split('|').map((item, i) => (
+                  item.trim().toLowerCase().includes('find') ? (
+                    <Link
+                      key={i}
+                      to="/resorts/ai-assistant"
+                      data-sanity-source={sanityNav && sanityNav.key ? `copyBlock:${sanityNav.key}` : undefined}
+                      className="bg-gradient-to-r from-amber-400 to-yellow-600 text-black px-6 py-3 rounded-sm hover:shadow-lg transition-all duration-300 font-medium tracking-wide"
+                    >
+                      {item.trim()}
+                    </Link>
+                  ) : (
+                    <a
+                      key={i}
+                      href={`#${item.trim().toLowerCase().replace(/\s+/g, '-')}`}
+                      data-sanity-source={sanityNav && sanityNav.key ? `copyBlock:${sanityNav.key}` : undefined}
+                      className="text-gray-300 hover:text-white transition-colors duration-300 font-light"
+                    >
+                      {item.trim()}
+                    </a>
+                  )
+                ))
+              ) : null}
             </div>
           </div>
         </div>
@@ -195,22 +240,27 @@ const LandingPage = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5, duration: 1 }}
             className="text-4xl md:text-7xl font-thin mb-8 leading-tight tracking-wide"
+            data-sanity-source={siteSettings && siteSettings.siteTitle ? 'siteSettings:siteTitle' : (sanityHero && sanityHero.key ? `copyBlock:${sanityHero.key}` : undefined)}
           >
-            Mexico's Most
-            <span className="block font-light bg-gradient-to-r from-amber-400 to-yellow-600 bg-clip-text text-transparent">
-              Extraordinary Resorts
-            </span>
+            {siteSettings && siteSettings.siteTitle ? (
+              <span className="block">{siteSettings.siteTitle}</span>
+            ) : (sanityHero && sanityHero.title ? (
+              // Only render the hero title when Sanity provides one and no siteSettings title exists.
+              <span className="block">{sanityHero.title}</span>
+            ) : null)}
           </motion.h1>
           
-          <motion.p 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.7, duration: 0.8 }}
             className="text-xl md:text-2xl mb-12 text-gray-300 font-light max-w-3xl mx-auto leading-relaxed"
+            data-sanity-source={sanityHero && sanityHero.key ? `copyBlock:${sanityHero.key}` : undefined}
           >
-            From luxury escapes to family adventures, discover the perfect resort experience 
-            tailored to your unique travel dreams.
-          </motion.p>
+            {sanityHero && ( (sanityHero.body && sanityHero.body.length) || sanityHero.bodyPlain) ? (
+              sanityHero.body && sanityHero.body.length ? <PortableTextRenderer value={sanityHero.body} /> : <div>{sanityHero.bodyPlain}</div>
+            ) : null}
+          </motion.div>
           
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -285,12 +335,14 @@ const LandingPage = () => {
             >
               <span className="text-amber-400 text-sm font-light tracking-widest">PREMIER DESTINATIONS</span>
             </motion.div>
-            <h2 className="text-4xl md:text-6xl font-thin mb-8 text-white">
-              Mexico's Finest Locations
-            </h2>
-            <p className="text-xl text-gray-400 font-light max-w-2xl mx-auto">
-              Discover extraordinary destinations where luxury meets authentic Mexican culture
-            </p>
+            {sanityDestinations && sanityDestinations.title ? (
+              <h2 data-sanity-source={sanityDestinations && sanityDestinations.key ? `copyBlock:${sanityDestinations.key}` : undefined} className="text-4xl md:text-6xl font-thin mb-8 text-white">{sanityDestinations.title}</h2>
+            ) : null}
+            {sanityDestinations && ((sanityDestinations.body && sanityDestinations.body.length) || sanityDestinations.bodyPlain) ? (
+              <div data-sanity-source={sanityDestinations && sanityDestinations.key ? `copyBlock:${sanityDestinations.key}` : undefined} className="text-xl text-gray-400 font-light max-w-2xl mx-auto">
+                {sanityDestinations.body && sanityDestinations.body.length ? <PortableTextRenderer value={sanityDestinations.body} /> : <div>{sanityDestinations.bodyPlain}</div>}
+              </div>
+            ) : null}
           </div>
           
           <motion.div 
@@ -340,57 +392,114 @@ const LandingPage = () => {
       <footer className="bg-black border-t border-gray-800 py-16">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-12">
-            <div>
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center">
-                  <Sun className="w-5 h-5 text-black" />
+            {siteSettings && Array.isArray(siteSettings.footerColumns) && siteSettings.footerColumns.length ? (
+              // Render a brand/description column first, then the configured footer columns from siteSettings
+              <>
+                <div>
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center">
+                      <Sun className="w-5 h-5 text-black" />
+                    </div>
+                    <span className="text-xl font-light text-white">{siteSettings && siteSettings.siteTitle ? siteSettings.siteTitle : null}</span>
+                  </div>
+                  {siteSettings && siteSettings.siteDescription && siteSettings.siteDescription.length ? (
+                    <PortableTextRenderer value={siteSettings.siteDescription} />
+                  ) : (sanityFooter && sanityFooter.bodyPlain ? (
+                    <p data-sanity-source={sanityFooter && sanityFooter.key ? `copyBlock:${sanityFooter.key}` : undefined} className="text-gray-400 font-light">{sanityFooter.bodyPlain}</p>
+                  ) : null)}
                 </div>
-                <span className="text-xl font-light text-white">Resorts of Mexico</span>
-              </div>
-              <p className="text-gray-400 font-light">Discovering extraordinary resort experiences across Mexico's most beautiful destinations.</p>
-            </div>
-            
-            <div>
-              <h4 className="font-light mb-6 text-white">Destinations</h4>
-              <ul className="space-y-3 text-gray-400 font-light">
-                <li><a href="#" className="hover:text-white transition-colors">Riviera Maya</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Los Cabos</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Puerto Vallarta</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Tulum</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-light mb-6 text-white">Resort Types</h4>
-              <ul className="space-y-3 text-gray-400 font-light">
-                <li><a href="#" className="hover:text-white transition-colors">Ultra-Luxury</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Family Paradise</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Adults-Only</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Eco-Luxury</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-light mb-6 text-white">Support</h4>
-              <ul className="space-y-3 text-gray-400 font-light">
-                <li className="flex items-center">
-                  <Phone className="w-4 h-4 mr-3" />
-                  <span>1-800-RESORTS</span>
-                </li>
-                <li className="flex items-center">
-                  <Mail className="w-4 h-4 mr-3" />
-                  <span>help@resortsofmexico.com</span>
-                </li>
-                <li className="flex items-center">
-                  <Shield className="w-4 h-4 mr-3" />
-                  <span>24/7 Travel Support</span>
-                </li>
-              </ul>
-            </div>
+
+                {siteSettings.footerColumns.map((col, idx) => (
+                  <div key={idx}>
+                    <h4 className="font-light mb-6 text-white">{col.title}</h4>
+                    <ul className="space-y-3 text-gray-400 font-light">
+                      {Array.isArray(col.links) && col.links.length ? col.links.map((lnk, i) => (
+                        <li key={i}>
+                          {lnk.url ? (
+                            <a href={lnk.url} target={lnk.external ? '_blank' : '_self'} rel={lnk.external ? 'noreferrer noopener' : undefined} className="hover:text-white transition-colors">{lnk.title}</a>
+                          ) : (
+                            <span>{lnk.title}</span>
+                          )}
+                        </li>
+                      )) : null}
+                    </ul>
+                  </div>
+                ))}
+              </>
+            ) : (
+              // Fallback to previous hardcoded layout
+              <>
+                <div>
+                  <div className="flex items-center space-x-3 mb-6">
+                    <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center">
+                      <Sun className="w-5 h-5 text-black" />
+                    </div>
+                    <span className="text-xl font-light text-white" data-sanity-source={siteSettings && siteSettings.siteTitle ? 'siteSettings:siteTitle' : undefined}>{siteSettings && siteSettings.siteTitle ? siteSettings.siteTitle : null}</span>
+                  </div>
+                  {siteSettings && siteSettings.siteDescription && siteSettings.siteDescription.length ? (
+                    <PortableTextRenderer value={siteSettings.siteDescription} />
+                  ) : (
+                    <p className="text-gray-400 font-light">{sanityFooter && sanityFooter.bodyPlain ? sanityFooter.bodyPlain : "Discovering extraordinary resort experiences across Mexico's most beautiful destinations."}</p>
+                  )}
+                </div>
+
+                <div>
+                  <h4 className="font-light mb-6 text-white">Destinations</h4>
+                  <ul className="space-y-3 text-gray-400 font-light">
+                    <li><a href="#" className="hover:text-white transition-colors">Riviera Maya</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors">Los Cabos</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors">Puerto Vallarta</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors">Tulum</a></li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-light mb-6 text-white">Resort Types</h4>
+                  <ul className="space-y-3 text-gray-400 font-light">
+                    <li><a href="#" className="hover:text-white transition-colors">Ultra-Luxury</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors">Family Paradise</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors">Adults-Only</a></li>
+                    <li><a href="#" className="hover:text-white transition-colors">Eco-Luxury</a></li>
+                  </ul>
+                </div>
+
+                <div>
+                  <h4 className="font-light mb-6 text-white">Support</h4>
+                  <ul className="space-y-3 text-gray-400 font-light">
+                    <li className="flex items-center">
+                      <Phone className="w-4 h-4 mr-3" />
+                      <span>{(siteSettings && siteSettings.contact && siteSettings.contact.phone) || '1-800-RESORTS'}</span>
+                    </li>
+                    <li className="flex items-center">
+                      <Mail className="w-4 h-4 mr-3" />
+                      <span>{(siteSettings && siteSettings.contact && siteSettings.contact.email) || 'help@resortsofmexico.com'}</span>
+                    </li>
+                    <li className="flex items-center">
+                      <Shield className="w-4 h-4 mr-3" />
+                      <span>{(siteSettings && siteSettings.contact && siteSettings.contact.supportText) || '24/7 Travel Support'}</span>
+                    </li>
+                  </ul>
+                </div>
+              </>
+            )}
           </div>
           
           <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-500 font-light">
-            <p>&copy; 2025 Resorts of Mexico. Creating unforgettable resort experiences.</p>
+            {siteSettings ? (
+              siteSettings.bottomBody && siteSettings.bottomBody.length ? (
+                <PortableTextRenderer value={siteSettings.bottomBody} />
+              ) : (
+                <p>{siteSettings.copyrightText || siteSettings.bottomBodyPlain || null}</p>
+              )
+            ) : (
+              (sanityFooter && sanityFooter.body && sanityFooter.body.length) ? (
+                <PortableTextRenderer value={sanityFooter.body} />
+              ) : (sanityFooter && sanityFooter.bodyPlain ? (
+                <p>{sanityFooter.bodyPlain}</p>
+              ) : (
+                <p>{null}</p>
+              ))
+            )}
           </div>
         </div>
       </footer>
@@ -423,7 +532,6 @@ const LandingPage = () => {
                     <button
                       onClick={() => {
                         setDestinationModalStep(1);
-                        setSelectedResortType(null);
                       }}
                       className="p-2 hover:bg-black/10 rounded-full transition"
                     >
@@ -436,7 +544,6 @@ const LandingPage = () => {
                     onClick={() => {
                       setIsDestinationMapOpen(false);
                       setDestinationModalStep(1);
-                      setSelectedResortType(null);
                     }}
                     className="p-2 hover:bg-black/10 rounded-full transition"
                   >

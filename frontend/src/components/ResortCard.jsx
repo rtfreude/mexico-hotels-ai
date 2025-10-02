@@ -1,6 +1,7 @@
 import React from 'react';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { srcSetFor, srcFor, PLACEHOLDER_IMAGE } from '../lib/sanityImage';
 import { 
   Star, 
   MapPin, 
@@ -37,6 +38,11 @@ const ResortCard = ({ resort, index = 0 }) => {
   };
 
   const getResortImage = (resort) => {
+    // Prefer Sanity-uploaded images
+    if (!imageError && resort.images && resort.images.length > 0 && resort.images[0].url) {
+      return resort.images[0].url;
+    }
+
     if (imageError || !resort.imageUrl) {
       // Fallback to a beautiful resort image based on location
       const fallbackImages = {
@@ -112,13 +118,36 @@ const ResortCard = ({ resort, index = 0 }) => {
     >
       {/* Resort Image */}
       <div className="relative h-64 overflow-hidden">
-        <img
-          src={getResortImage(resort)}
-          alt={resort.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-          onError={() => setImageError(true)}
-          loading="lazy"
-        />
+        {(() => {
+          const imgObj = resort.images && resort.images[0];
+          if (imgObj && imgObj.asset && !imageError) {
+            const srcSet = srcSetFor(imgObj.asset);
+            const src = srcFor(imgObj.asset, 1024);
+
+            const finalSrc = src || getResortImage(resort) || PLACEHOLDER_IMAGE;
+
+            return (
+              <img
+                src={finalSrc}
+                srcSet={srcSet || undefined}
+                sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                alt={(imgObj && imgObj.alt) || resort.name}
+                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                onError={() => setImageError(true)}
+                loading="lazy"
+              />
+            );
+          }
+          return (
+            <img
+              src={getResortImage(resort)}
+              alt={(resort.images && resort.images[0] && resort.images[0].alt) || resort.name}
+              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+              onError={() => setImageError(true)}
+              loading="lazy"
+            />
+          );
+        })()}
         
         {/* Overlay Gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />

@@ -10,6 +10,9 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
   "seed:sanity": "node ./scripts/seed_sanity.js",
+    "studio": "npm --prefix ./studio run start",
+  "studio:dev": "npm --prefix ./studio run dev",
+  "studio:preview": "npm --prefix ./studio run build && npm --prefix ./studio run start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

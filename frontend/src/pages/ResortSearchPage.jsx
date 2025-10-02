@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Sparkles, Bot, ExternalLink, Palmtree, Star, Waves, Utensils, Dumbbell, MapPin, Sun } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface';
 import HotelGrid from '../components/HotelGrid';
@@ -9,9 +9,11 @@ import Header from '../components/Header';
 import SuggestedSearches from '../components/SuggestedSearches';
 import GoogleMap from '../components/GoogleMap';
 import CategorizedResults from '../components/CategorizedResults';
+import { usePublishedHotels } from '../lib/usePublishedHotelsHook';
+import { fetchSiteSettings } from '../lib/useSanitySiteSettings';
 
 function ResortSearchPage() {
-  const [hotels, setHotels] = useState([]);
+  const { hotels, setHotels } = usePublishedHotels({ autoLoad: true });
   const [resorts, setResorts] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [activities, setActivities] = useState([]);
@@ -22,6 +24,13 @@ function ResortSearchPage() {
   const [selectedDestination, setSelectedDestination] = useState('');
   const [selectedType, setSelectedType] = useState('');
   const location = useLocation();
+  const [siteSettings, setSiteSettings] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchSiteSettings().then(s => { if (mounted && s) setSiteSettings(s); }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   // Sample resort data for immediate display while API loads
   const getSampleResortData = (destination, type) => {
@@ -437,6 +446,21 @@ function ResortSearchPage() {
     }
   }, [location.search]);
 
+  // Use the hotels loaded via the hook to populate resorts list and fall back to sample data when empty
+  useEffect(() => {
+    if (hotels && hotels.length > 0) {
+      setResorts(hotels.filter(h => (h.type || '').toLowerCase().includes('resort')));
+    } else {
+      const urlParams = new URLSearchParams(location.search);
+      const dest = urlParams.get('destination') || 'riviera-maya';
+      const { resorts: sampleResorts, restaurants: sampleRestaurants, activities: sampleActivities } = getSampleResortData(dest, '');
+      setResorts(sampleResorts);
+      setRestaurants(sampleRestaurants);
+      setActivities(sampleActivities);
+    }
+    setInitialLoading(false);
+  }, [hotels, location.search]);
+
   // AI search handler
   const handleAISearch = async (query, isAutoSearch = false, destinationOverride = null) => {
     try {
@@ -798,7 +822,7 @@ function ResortSearchPage() {
                     <div className="w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center">
                       <Sun className="w-5 h-5 text-black" />
                     </div>
-                    <span className="text-xl font-light tracking-wide text-white">Resorts of Mexico</span>
+                    <span className="text-xl font-light tracking-wide text-white">{siteSettings && siteSettings.siteTitle ? siteSettings.siteTitle : null}</span>
                   </div>
                   
                   {selectedDestination && (

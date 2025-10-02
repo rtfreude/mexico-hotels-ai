@@ -1,0 +1,23 @@
+name: Frontend tests
+
+on:
+  push:
+    paths:
+      - 'frontend/**'
+  pull_request:
+    paths:
+      - 'frontend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install frontend deps
+        run: npm --prefix frontend ci
+      - name: Run frontend unit tests
+        run: npm --prefix frontend test

@@ -1,4 +1,5 @@
 import { Star, MapPin, DollarSign, ExternalLink, ImageIcon } from 'lucide-react';
+import { srcSetFor, srcFor, PLACEHOLDER_IMAGE } from '../lib/sanityImage';
 import { useState } from 'react';
 
 function HotelGrid({ hotels }) {
@@ -85,6 +86,11 @@ function HotelGrid({ hotels }) {
       'default': 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80'
     };
 
+    // Prefer Sanity-uploaded image asset URL if present
+    if (hotel.images && hotel.images.length > 0 && hotel.images[0].url && !imageErrors.has(hotel.id)) {
+      return hotel.images[0].url;
+    }
+
     // If hotel has a valid image URL and it hasn't errored, use it
     if (hotel.imageUrl && !imageErrors.has(hotel.id)) {
       return hotel.imageUrl;
@@ -110,13 +116,38 @@ function HotelGrid({ hotels }) {
         <div key={hotel.id} className="card overflow-hidden group flex flex-col h-full">
           {/* Hotel Image */}
           <div className="relative h-48 overflow-hidden bg-gray-200">
-            <img
-              src={getHotelImage(hotel)}
-              alt={hotel.name}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-              onError={() => handleImageError(hotel.id)}
-              loading="lazy"
-            />
+            {(() => {
+              const imgObj = hotel.images && hotel.images[0];
+              if (imgObj && imgObj.asset) {
+                const srcSet = srcSetFor(imgObj.asset);
+                const src = srcFor(imgObj.asset, 800);
+
+                // If srcFor couldn't produce a URL (e.g. Sanity not configured), fall back to curated images
+                const finalSrc = src || getHotelImage(hotel) || PLACEHOLDER_IMAGE;
+
+                return (
+                  <img
+                    src={finalSrc}
+                    srcSet={srcSet || undefined}
+                    sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw"
+                    alt={(imgObj && imgObj.alt) || hotel.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                    onError={() => handleImageError(hotel.id)}
+                    loading="lazy"
+                  />
+                );
+              }
+
+              return (
+                <img
+                  src={getHotelImage(hotel)}
+                  alt={(hotel.images && hotel.images[0] && hotel.images[0].alt) || hotel.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  onError={() => handleImageError(hotel.id)}
+                  loading="lazy"
+                />
+              );
+            })()}
             <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-full shadow-md">
               <span className="text-sm font-semibold text-mexico-green">
                 {hotel.type || 'Hotel'}

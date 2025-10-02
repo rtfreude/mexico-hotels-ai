@@ -714,11 +714,15 @@ class UltraOptimizedRAGService {
         const city = hotel.location?.city || hotel.city || 'Unknown';
         const state = hotel.location?.state || hotel.state || 'Mexico';
         
+        const regionName = hotel.region?.name || hotel.region || hotel.regionName || '';
+        const regionId = hotel.region?.id || hotel.regionId || (hotel.region?._ref || null);
+
         const textToEmbed = `
           Hotel: ${hotel.name}
           Location: ${location}
           City: ${city}
           State: ${state}
+          Region: ${regionName}
           Description: ${hotel.description || ''}
           Amenities: ${amenitiesList.join(', ')}
           Price Range: ${hotel.priceRange || hotel.priceLevel || ''}
@@ -747,6 +751,10 @@ class UltraOptimizedRAGService {
             nearbyAttractions: JSON.stringify(hotel.nearbyAttractions || []),
             latitude: hotel.location?.latitude || 0,
             longitude: hotel.location?.longitude || 0
+            ,
+            regionName: regionName || '',
+            regionId: regionId || '',
+            regionSlug: (hotel.region && hotel.region.slug) ? hotel.region.slug.current : (hotel.regionSlug || '')
           }
         });
       }

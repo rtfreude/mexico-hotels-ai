@@ -236,12 +236,18 @@ class RAGService {
         
         const city = hotel.location?.city || hotel.city || 'Unknown';
         const state = hotel.location?.state || hotel.state || 'Mexico';
-        
+
+        // Region information: support multiple shapes (reference object, string, or embedded fields)
+        const regionName = (hotel.region && typeof hotel.region === 'object') ? (hotel.region.name || hotel.regionName || '') : (hotel.region || hotel.regionName || '');
+        const regionId = (hotel.region && typeof hotel.region === 'object') ? (hotel.region.id || hotel.region._id || hotel.region._ref || null) : (hotel.regionId || null);
+        const regionSlug = (hotel.region && typeof hotel.region === 'object') ? (hotel.region.slug || hotel.regionSlug || '') : (hotel.regionSlug || '');
+
         const textToEmbed = `
           Hotel: ${hotel.name}
           Location: ${location}
           City: ${city}
           State: ${state}
+          Region: ${regionName}
           Description: ${hotel.description || ''}
           Amenities: ${amenitiesList.join(', ')}
           Price Range: ${hotel.priceRange || hotel.priceLevel || ''}
@@ -272,6 +278,11 @@ class RAGService {
             nearbyAttractions: JSON.stringify(hotel.nearbyAttractions || []),
             latitude: hotel.location?.latitude || 0,
             longitude: hotel.location?.longitude || 0
+            ,
+            // Region metadata for region-aware retrieval and filtering
+            regionName: regionName || '',
+            regionId: regionId || null,
+            regionSlug: regionSlug || ''
           }
         });
       }

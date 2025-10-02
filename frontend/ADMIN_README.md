@@ -37,3 +37,14 @@ Signed webhook helper (backend/scripts/send_signed_webhook.js) will POST a signe
 node backend/scripts/send_signed_webhook.js http://localhost:5001/api/sanity/webhook
 ```
 
+Frontend Sanity configuration
+----------------------------
+
+This frontend ships with a small public read-only Sanity helper at `src/lib/sanityClient.js` and an
+image helper at `src/lib/sanityImage.js`. To enable fetching published documents directly from the
+browser set the following environment variables in your local `.env.local` (copy from `.env.example`):
+
+VITE_SANITY_PROJECT_ID and optionally VITE_SANITY_DATASET. Do NOT put any private tokens in the
+frontend env. For preview/drafts use the backend endpoints which are wired to use `SANITY_API_TOKEN`.
+
+

@@ -126,6 +126,30 @@ router.get('/status', (req, res) => {
   statusTracker.getStatus().then(status => res.json(status)).catch(err => res.status(500).json({ error: err.message }));
 });
 
+// Preview endpoints - these return drafts and unpublished content.
+// Requires SANITY_PREVIEW_TOKEN or SANITY_API_TOKEN to be set on the server.
+router.get('/preview/hotels', async (req, res) => {
+  try {
+    const preview = await sanityService.getAllHotelsPreview();
+    res.json(preview);
+  } catch (err) {
+    console.error('Preview hotels error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/preview/hotel/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const doc = await sanityService.getHotelByIdPreview(id);
+    if (!doc) return res.status(404).json({ error: 'Not found' });
+    res.json(doc);
+  } catch (err) {
+    console.error('Preview hotel error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Jobs list (admin) - protected with same secret
 router.get('/jobs', async (req, res) => {
   if (!verifySecret(req)) return res.status(403).json({ error: 'Unauthorized' });

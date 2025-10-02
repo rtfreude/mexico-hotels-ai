@@ -3,12 +3,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Bot, ExternalLink, Building2 } from 'lucide-react';
 import ChatInterface from '../components/ChatInterface';
 import HotelGrid from '../components/HotelGrid';
+import { usePublishedHotels } from '../lib/usePublishedHotelsHook';
 import Header from '../components/Header';
 import SuggestedSearches from '../components/SuggestedSearches';
 import GoogleMap from '../components/GoogleMap';
 import CategorizedResults from '../components/CategorizedResults';
 
 function HotelSearchPage() {
+  const { hotels: publishedHotels } = usePublishedHotels({ autoLoad: true });
   const [hotels, setHotels] = useState([]);
   const [loading, setLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
@@ -36,7 +38,7 @@ function HotelSearchPage() {
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const city = urlParams.get('city');
-    const region = urlParams.get('region');
+  const _region = urlParams.get('region');
     const checkin = urlParams.get('checkin');
     const checkout = urlParams.get('checkout');
     const guests = urlParams.get('guests');
@@ -141,8 +143,8 @@ function HotelSearchPage() {
               </div>
 
               <div className="flex-1 flex flex-col">
-                <ChatInterface
-                  hotels={hotels}
+                        <ChatInterface
+                          hotels={publishedHotels && publishedHotels.length > 0 ? publishedHotels : hotels}
                   setHotels={setHotels}
                   loading={loading}
                   setLoading={setLoading}

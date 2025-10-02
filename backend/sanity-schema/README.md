@@ -8,10 +8,12 @@ How to use this schema in Sanity Studio
 import createSchema from 'part:@sanity/base/schema-creator'
 import schemaTypes from 'all:part:@sanity/base/schema-type'
 import hotel from './hotel'
+import region from './region'
+import copyBlock from './copyBlock'
 
 export default createSchema({
   name: 'default',
-  types: schemaTypes.concat([hotel])
+  types: schemaTypes.concat([hotel, region, copyBlock])
 })
 ```
 
