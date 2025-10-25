@@ -3,7 +3,7 @@ import { Search, Loader } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-function SearchBar({ setHotels, setLoading, setAiResponse }) {
+function SearchBar({ setHotels, setLoading }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
